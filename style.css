@@ -2,6 +2,37 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
 
 :root {
+
+  /* ===== THEMES ===== */
+body.theme-light {
+  --bg: #d5d0c8;
+  --panel: #e4e0d8;
+  --win: #f5f4f0;
+  --border: #887a66;
+  --borderg: #aa9c88;
+  --text: #1a140a;
+  --textd: #5a4e40;
+  --titlebar: linear-gradient(180deg,#c4b9a9,#a39683);
+  --btn: #e4e0d8;
+  --btnhi: #ffffff;
+  --input: #ffffff;
+}
+
+body.theme-xp {
+  --bg: #004e98;
+  --panel: #ece9d8;
+  --win: #ffffff;
+  --border: #0055ea;
+  --borderg: #003fba;
+  --text: #000000;
+  --textd: #333333;
+  --titlebar: linear-gradient(180deg, #0058e6, #003fba);
+  --btn: #ece9d8;
+  --btnhi: #f5f4ea;
+  --input: #ffffff;
+  --link: #0000ee;
+}
+  
   --bg:       #100c04;
   --panel:    #0d0900;
   --win:      #0f0b03;
