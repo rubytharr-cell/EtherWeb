@@ -675,6 +675,20 @@ function updateUser(u) {
   if(i>-1) DB.users[i]=u;
 }
 
+
+
+
+//
+function setTheme(theme) {
+  document.body.className = theme;
+  if(ME) {
+    ME.theme = theme;
+    saveMe();
+    updateUser(ME); 
+    save(); // Отправляем выбор в облако
+  }
+}
+
 // ===== INIT =====
 load();
 loadMe();
