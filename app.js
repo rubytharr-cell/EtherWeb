@@ -22,6 +22,9 @@ let ME = null;
 let curForumId = null;
 let curChatPartner = null;
 
+const SUPER_ADMINS = ['MadGod']; // 
+function isAdmin() { return ME && SUPER_ADMINS.includes(ME.name); }
+
 const SPARK_COLORS = [
   { name:'Огонь',  val:'#ff6600', bg:'#2a1000' },
   { name:'Кровь',  val:'#dd0000', bg:'#200000' },
@@ -140,7 +143,7 @@ const veil = document.getElementById('veil');
 function resetIdle() {
   clearTimeout(idleT);
   veil.style.background='rgba(0,0,0,0)';
-  idleT=setTimeout(()=>{ veil.style.background='rgba(0,0,0,0.65)'; },10000);
+  idleT=setTimeout(()=>{ veil.style.background='rgba(0,0,0,0.65)'; },180000);
 }
 resetIdle();
 
@@ -242,29 +245,34 @@ function renderFeed() {
     document.getElementById('feed-count').textContent='0 трансляций';
     return;
   }
-  el.innerHTML = feed.map(p=>renderPost(p)).join('');
+  // Передаем контекст 'feed', чтобы ID не дублировались
+  el.innerHTML = feed.map(p=>renderPost(p, 'feed')).join('');
   document.getElementById('feed-count').textContent = feed.length+' трансляций';
   document.getElementById('sb-online').textContent = DB.users.length;
   document.getElementById('online-count').innerHTML = '<span class="online-dot"></span> '+DB.users.length+' в сети';
 }
 
-function renderPost(p) {
+function renderPost(p, ctx = 'feed') {
   const author = DB.users.find(u=>u.name===p.author)||{name:p.author,avatar:'?',karma:0};
-  const isAdmin = p.pinned;
+  const isPostAdmin = p.pinned;
   const myLike = p.likes&&p.likes.includes(ME.name);
   const myDislike = p.dislikes&&p.dislikes.includes(ME.name);
   const cmtCount = (DB.comments[p.id]||[]).length;
   const ring = karmaRing(author.karma||0);
   const forumRef = p.forumId ? `<div class="post-forum-ref">📡 <a onclick="openForum('${p.forumId}')">${getForumName(p.forumId)}</a></div>` : '';
-  const adminTag = isAdmin ? `<span class="post-tag admin">ЗАКРЕПЛЕНО</span>` : '';
-  const adminClass = isAdmin ? ' admin' : '';
+  const adminTag = isPostAdmin ? `<span class="post-tag admin">ЗАКРЕПЛЕНО</span>` : '';
+  const adminClass = isPostAdmin ? ' admin' : '';
   const body = p.body.replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
-  const cmtSection = renderComments(p.id);
-  return `<div class="post${adminClass}" id="post-${p.id}">
+  const cmtSection = renderComments(p.id, ctx);
+  
+  // Проверка прав на удаление
+  const canDelete = p.author === ME.name || isAdmin();
+
+  return `<div class="post${adminClass}" id="post-${ctx}-${p.id}">
     <div class="post-hdr">
       <div class="avatar">${author.avatar||'?'}<div class="karma-ring ${ring}"></div></div>
       <div class="post-meta">
-        <span class="post-author${isAdmin?' admin-name':''}">${p.author}</span>${adminTag}
+        <span class="post-author${isPostAdmin?' admin-name':''}">${p.author}</span>${adminTag}
         <button class="btn sm" style="margin-left:4px;font-size:8px" onclick="startChat('${p.author}')">✉</button>
         ${p.author!==ME.name?`<button class="btn sm" style="font-size:8px;margin-left:2px" onclick="toggleSub('${p.author}')">${(ME.subs||[]).includes(p.author)?'−подписка':'+ подписка'}</button>`:''}
         <br><span class="post-time">${timeAgo(p.ts)}</span>
@@ -275,51 +283,67 @@ function renderPost(p) {
     <div class="post-actions">
       <button class="act${myLike?' liked':''}" onclick="likePost('${p.id}',true)">⟡ ${(p.likes||[]).length}</button>
       <button class="act${myDislike?' disliked':''}" onclick="likePost('${p.id}',false)">☠ ${(p.dislikes||[]).length}</button>
-      <button class="act" onclick="toggleComments('${p.id}')">↩ ${cmtCount}</button>
-      ${p.author===ME.name?`<button class="act danger" onclick="deletePost('${p.id}')">✕</button>`:''}
+      <button class="act" onclick="toggleComments('${p.id}', '${ctx}')">↩ ${cmtCount}</button>
+      ${canDelete ? `<button class="act danger" onclick="deletePost('${p.id}')">✕</button>` : ''}
       <button class="act" onclick="reportPost('${p.id}')">⚔</button>
     </div>
-    <div class="comments-section" id="cmts-${p.id}">${cmtSection}</div>
+    <div class="comments-section" id="cmts-${ctx}-${p.id}">${cmtSection}</div>
   </div>`;
 }
 
-function renderComments(postId) {
+function renderComments(postId, ctx) {
   const cmts = DB.comments[postId]||[];
   const forms = `<div class="comment-form">
-    <input id="ci-${postId}" placeholder="Ваш комментарий..." onkeydown="if(event.key==='Enter')submitComment('${postId}')">
-    <button class="btn sm primary" onclick="submitComment('${postId}')">⟡</button>
+    <input id="ci-${ctx}-${postId}" placeholder="Ваш комментарий..." onkeydown="if(event.key==='Enter')submitComment('${postId}', '${ctx}')">
+    <button class="btn sm primary" onclick="submitComment('${postId}', '${ctx}')">⟡</button>
   </div>`;
   if(!cmts.length) return forms;
   const list = cmts.map(c=>{
     const au = DB.users.find(u=>u.name===c.author)||{avatar:'?'};
+    const canDelCmt = c.author === ME.name || isAdmin();
     return `<div class="comment">
       <div class="comment-avatar">${au.avatar||'?'}</div>
-      <div><div class="comment-meta"><span class="comment-author">${c.author}</span> · ${timeAgo(c.ts)}</div>
-      <div class="comment-body">${c.body}</div></div>
+      <div style="flex:1"><div class="comment-meta"><span class="comment-author">${c.author}</span> · ${timeAgo(c.ts)}</div>
+      <div class="comment-body" style="word-break:break-word;">${c.body}</div></div>
+      ${canDelCmt ? `<button class="act danger sm" style="align-self:flex-start;padding:1px 4px" onclick="deleteComment('${postId}', '${c.id}')">✕</button>` : ''}
     </div>`;
   }).join('');
   return list+forms;
 }
 
-function toggleComments(id) {
-  const el = document.getElementById('cmts-'+id);
+function toggleComments(id, ctx) {
+  const el = document.getElementById(`cmts-${ctx}-${id}`);
   el.classList.toggle('open');
   if(el.classList.contains('open') && !el.innerHTML.includes('comment-form')){
-    el.innerHTML = renderComments(id);
+    el.innerHTML = renderComments(id, ctx);
   }
 }
 
-function submitComment(postId) {
-  const inp = document.getElementById('ci-'+postId);
+function submitComment(postId, ctx) {
+  const inp = document.getElementById(`ci-${ctx}-${postId}`);
   const body = inp.value.trim();
   if(!body) return;
   if(!DB.comments[postId]) DB.comments[postId]=[];
   DB.comments[postId].push({id:uid(),author:ME.name,body,ts:Date.now()});
   ME.commentCount = (ME.commentCount||0)+1;
   updateUser(ME); save();
-  const el = document.getElementById('cmts-'+postId);
-  el.innerHTML = renderComments(postId);
-  el.classList.add('open');
+  
+  // Обновляем комменты везде, где пост открыт
+  const elFeed = document.getElementById(`cmts-feed-${postId}`);
+  const elForum = document.getElementById(`cmts-forum-${postId}`);
+  if(elFeed) elFeed.innerHTML = renderComments(postId, 'feed');
+  if(elForum) elForum.innerHTML = renderComments(postId, 'forum');
+}
+
+function deleteComment(postId, cmtId) {
+  if(!DB.comments[postId]) return;
+  DB.comments[postId] = DB.comments[postId].filter(c => c.id !== cmtId);
+  save(); toast('Комментарий стерт.');
+  // Обновляем UI
+  const elFeed = document.getElementById(`cmts-feed-${postId}`);
+  const elForum = document.getElementById(`cmts-forum-${postId}`);
+  if(elFeed) elFeed.innerHTML = renderComments(postId, 'feed');
+  if(elForum) elForum.innerHTML = renderComments(postId, 'forum');
 }
 
 // ===== POSTS =====
@@ -364,8 +388,7 @@ function likePost(id, isLike) {
   if(hadLike)    karmaHit(p.author, -1);
   if(hadDislike) karmaHit(p.author,  1);
 
-  // Если нажали ту же кнопку — просто снимаем голос (toggle off)
-  // Если другую — ставим новый
+  // Если нажали ту же кнопку — просто снимаем голос
   const toggling = (isLike && hadLike) || (!isLike && hadDislike);
   if(!toggling) {
     if(isLike) { p.likes.push(ME.name);    karmaHit(p.author,  1); }
@@ -373,11 +396,14 @@ function likePost(id, isLike) {
   }
 
   save(); renderFeed();
+  if(curForumId) renderForumPosts(curForumId);
 }
 
 function deletePost(id) {
   DB.posts = DB.posts.filter(p=>p.id!==id);
-  save(); renderFeed(); toast('Мыслеформа уничтожена.');
+  save(); renderFeed(); 
+  if(curForumId) renderForumPosts(curForumId);
+  toast('Мыслеформа уничтожена.');
 }
 
 function reportPost(id) { toast('⚔ Инквизиция уведомлена. Вопрос рассматривается.'); }
@@ -467,7 +493,7 @@ function renderForumPosts(id) {
   const el=document.getElementById('fv-posts');
   const allPosts=[...DB.posts.filter(p=>p.forumId===id)].reverse();
   if(!allPosts.length){ el.innerHTML='<div class="empty-state">Форум пуст.</div>'; return; }
-  el.innerHTML=allPosts.map(p=>renderPost(p)).join('');
+  el.innerHTML=allPosts.map(p=>renderPost(p, 'forum')).join(''); // <-- ВОТ ТУТ ИЗМЕНЕНИЕ
 }
 
 function submitForumPost() {
