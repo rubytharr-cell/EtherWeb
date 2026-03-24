@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>С Е Т Ь</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cur-layer">
+  <div class="spark-main" id="spark-main"></div>
+</div>
+<div id="veil"></div>
+<div id="toast"></div>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen">
+  <div id="auth-box" class="win">
+    <div class="win-title">
+      <span class="win-title-txt">С Е Т Ь :: Вход в систему</span>
+      <div class="wbtns"><div class="wbtn x">✕</div></div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Войти</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login" class="auth-body">
+      <div class="auth-title">⊷ ВХОД ⊷</div>
+      <div class="field"><label>ПОЗЫВНОЙ</label><input id="l-name" type="text" placeholder="ваш_ник" autocomplete="off"></div>
+      <div class="field"><label>ПАРОЛЬ</label><input id="l-pass" type="password" placeholder="••••••••"></div>
+      <button class="btn primary" style="width:100%;margin-top:4px" onclick="doLogin()">Войти в Сеть</button>
+      <div id="l-err" class="auth-err">⚠ Неверный позывной или пароль</div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="auth-register" class="auth-body" style="display:none">
+      <div class="auth-title">⊷ РЕГИСТРАЦИЯ ⊷</div>
+      <div class="field"><label>ПОЗЫВНОЙ (ник)</label><input id="r-name" type="text" placeholder="твой_ник" autocomplete="off"></div>
+      <div class="field"><label>ПАРОЛЬ</label><input id="r-pass" type="password" placeholder="минимум 4 символа"></div>
+      <div class="field"><label>ВЫБЕРИ АВАТАР</label>
+        <div class="avatar-opts">
+          <div class="avatar-opt selected" data-av="🜂" onclick="selectAv(this)">🜂</div>
+          <div class="avatar-opt" data-av="🜄" onclick="selectAv(this)">🜄</div>
+          <div class="avatar-opt" data-av="🜃" onclick="selectAv(this)">🜃</div>
+          <div class="avatar-opt" data-av="🝊" onclick="selectAv(this)">🝊</div>
+          <div class="avatar-opt" data-av="☽" onclick="selectAv(this)">☽</div>
+          <div class="avatar-opt" data-av="⚗" onclick="selectAv(this)">⚗</div>
+          <div class="avatar-opt" data-av="🜏" onclick="selectAv(this)">🜏</div>
+        </div>
+      </div>
+      <button class="btn primary" style="width:100%;margin-top:4px" onclick="doRegister()">Создать личность</button>
+      <div id="r-err" class="auth-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app">
+  <div id="site-header">
+    <div class="site-name">С Е Т Ь</div>
+    <div class="prophecy-bar" id="prophecy-bar">...</div>
+  </div>
+
+  <div id="nav">
+    <button class="nav-tab active" onclick="showPage('ether')">⟡ Эфир</button>
+    <button class="nav-tab" onclick="showPage('broadcasts')">📡 Вещания</button>
+    <button class="nav-tab" onclick="showPage('chats')">✉ Личные чаты <span id="unread-badge" class="badge" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="showPage('profile')">🝊 Астральное тело</button>
+    <div class="nav-right">
+      <span class="online-dot"></span><span id="nav-uname" style="color:var(--accent2)"></span>
+      &nbsp;<button class="btn sm danger" onclick="doLogout()">выйти</button>
+    </div>
+  </div>
+
+  <!-- ===== ETHER ===== -->
+  <div id="page-ether" class="page active">
+    <div class="layout2">
+      <div>
+        <!-- COMPOSE -->
+        <div class="win" style="margin-bottom:8px">
+          <div class="win-title">
+            <span class="win-title-txt">✦ Транслировать в Эфир</span>
+            <div class="wbtns"><div class="wbtn x" onclick="this.closest('.win').style.display='none'">✕</div></div>
+          </div>
+          <div class="compose-panel">
+            <select id="post-forum-sel" style="margin-bottom:6px;font-size:10px">
+              <option value="">— Личная трансляция (без форума) —</option>
+            </select>
+            <textarea id="compose-text" placeholder="Что происходит в твоём сознании..."></textarea>
+            <div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+              <button class="btn primary" onclick="submitPost()">⟡ Транслировать</button>
+              <button class="btn sm" onclick="insertSpoiler()">▓ Спойлер</button>
+              <span id="compose-len" style="margin-left:auto;color:var(--textd);font-size:9px">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEED -->
+        <div class="win">
+          <div class="win-title">
+            <span class="win-title-txt">⊶ Эфир — Ваша лента</span>
+            <div class="wbtns">
+              <div class="wbtn x">✕</div>
+            </div>
+          </div>
+          <div id="feed-list"></div>
+          <div class="statusbar">
+            <span id="feed-count">0 трансляций</span>
+            <span>|</span>
+            <span id="online-count"><span class="online-dot"></span> ... в сети</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div>
+        <div class="win" style="margin-bottom:8px">
+          <div class="win-title"><span class="win-title-txt">🜂 Состояние</span></div>
+          <div class="sb-section">
+            <div class="sb-title">МОЯ КАРМА</div>
+            <div style="font-size:16px;text-align:center;color:var(--accent);padding:4px 0" id="sb-karma">0</div>
+          </div>
+          <div class="sb-section">
+            <div class="sb-title">ПОДПИСКИ</div>
+            <div id="sb-subs"><div style="color:var(--textd);font-size:9px;padding:4px 0">Нет подписок</div></div>
+          </div>
+          <div class="sb-section">
+            <div class="sb-title">МОИ ФОРУМЫ</div>
+            <div id="sb-myforums"><div style="color:var(--textd);font-size:9px;padding:4px 0">Не состоите ни в одном</div></div>
+          </div>
+        </div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">⊷ Пульс Сети</span></div>
+          <div class="sb-section">
+            <div class="sb-title">ГОРЯЧИЕ ТЕМЫ</div>
+            <div id="sb-hot"></div>
+          </div>
+          <div class="sb-section">
+            <div style="color:var(--textd);font-size:10px;line-height:1.8;padding:2px 0">
+              Узлов активно: <span style="color:var(--resonc)" id="sb-online">—</span><br>
+              Ошибка 429: <span style="color:var(--adminc)">Риск кровоизлияния</span><br>
+              Ошибка 500: <span style="color:#aa4400">Бессознательное перегружено</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BROADCASTS ===== -->
+  <div id="page-broadcasts" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win" style="margin-bottom:8px">
+          <div class="win-title"><span class="win-title-txt">📡 Вещания — Поиск Форумов</span></div>
+          <div class="search-row">
+            <input id="forum-search" type="text" placeholder="Искать форум..." oninput="renderForums()" style="flex:1">
+            <button class="btn primary" onclick="openCreateForum()">+ Создать</button>
+          </div>
+          <div id="forums-list"></div>
+        </div>
+        <!-- FORUM VIEW -->
+        <div class="win" id="forum-view" style="display:none">
+          <div class="win-title">
+            <span class="win-title-txt" id="fv-title">Форум</span>
+            <div class="wbtns"><div class="wbtn x" onclick="closeForum()">✕</div></div>
+          </div>
+          <div class="win-title" style="background:transparent;border-bottom:1px solid var(--border)">
+            <span style="color:var(--textd);font-size:10px" id="fv-desc"></span>
+            <div style="display:flex;gap:4px">
+              <button class="btn sm" id="fv-join-btn" onclick="toggleJoinForum()"></button>
+            </div>
+          </div>
+          <div id="fv-posts"></div>
+          <div class="compose-panel" id="fv-compose" style="display:none">
+            <div class="compose-label">НАПИСАТЬ В ФОРУМ</div>
+            <textarea id="fv-text" placeholder="Ваша мыслеформа..."></textarea>
+            <div style="margin-top:4px"><button class="btn primary" onclick="submitForumPost()">Транслировать</button></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">🝊 Мои форумы</span></div>
+          <div id="my-forums-list" class="sb-section" style="font-size:10px"></div>
+        </div>
+      </div>
+    </div>
+    <!-- CREATE FORUM MODAL -->
+    <div class="modal-bg" id="modal-create-forum">
+      <div class="modal win">
+        <div class="win-title">
+          <span class="win-title-txt">+ Создать форум</span>
+          <div class="wbtns"><div class="wbtn x" onclick="closeModal('modal-create-forum')">✕</div></div>
+        </div>
+        <div style="padding:12px">
+          <div class="field"><label>НАЗВАНИЕ</label><input id="cf-name" placeholder="Название форума"></div>
+          <div class="field"><label>ОПИСАНИЕ</label><textarea id="cf-desc" style="min-height:50px" placeholder="О чём этот форум..."></textarea></div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn primary" onclick="createForum()">Создать</button>
+            <button class="btn" onclick="closeModal('modal-create-forum')">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHATS ===== -->
+  <div id="page-chats" class="page">
+    <div class="win">
+      <div class="win-title"><span class="win-title-txt">✉ Личные Чаты</span></div>
+      <div class="chat-layout">
+        <div class="chat-list" id="chat-list-panel">
+          <div style="padding:6px;border-bottom:1px solid var(--border)">
+            <input id="chat-search" placeholder="Найти пользователя..." oninput="searchChatUser()" style="font-size:10px;padding:3px 5px">
+          </div>
+          <div id="chat-user-results"></div>
+          <div style="padding:4px 0;border-top:1px solid var(--border);margin-top:4px">
+            <div class="sb-title" style="padding:0 8px 4px">ДИАЛОГИ</div>
+            <div id="dialogs-list"></div>
+          </div>
+        </div>
+        <div id="chat-window">
+          <div class="empty-state" id="chat-empty">Выберите диалог или начните новый</div>
+          <div id="chat-active" style="display:none">
+            <div class="win-title" style="background:var(--panel)">
+              <span class="win-title-txt" id="chat-partner-name"></span>
+              <div class="wbtns"><div class="wbtn x" onclick="closeChat()">✕</div></div>
+            </div>
+            <div class="messages-area" id="messages-area"></div>
+            <div class="msg-input-row">
+              <input id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMsg()" style="flex:1;font-size:10px;padding:3px 5px">
+              <button class="btn primary sm" onclick="sendMsg()">⟡</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE ===== -->
+  <div id="page-profile" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">🝊 Астральное тело — Настройки</span></div>
+          <div style="padding:12px">
+
+            <div class="profile-section">
+              <div class="profile-section-title">ПРОЕКЦИЯ</div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div>
+                  <div style="color:var(--textd);font-size:9px;margin-bottom:4px">АВАТАР</div>
+                  <div class="avatar-opts" id="prof-avs">
+                    <div class="avatar-opt" data-av="🜂" onclick="selectProfAv(this)">🜂</div>
+                    <div class="avatar-opt" data-av="🜄" onclick="selectProfAv(this)">🜄</div>
+                    <div class="avatar-opt" data-av="🜃" onclick="selectProfAv(this)">🜃</div>
+                    <div class="avatar-opt" data-av="🝊" onclick="selectProfAv(this)">🝊</div>
+                    <div class="avatar-opt" data-av="☽" onclick="selectProfAv(this)">☽</div>
+                    <div class="avatar-opt" data-av="⚗" onclick="selectProfAv(this)">⚗</div>
+                    <div class="avatar-opt" data-av="🜏" onclick="selectProfAv(this)">🜏</div>
+                  </div>
+                </div>
+                <div style="flex:1">
+                  <div class="field"><label>ПОЗЫВНОЙ</label><input id="prof-name" placeholder="Новый ник"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section">
+              <div class="profile-section-title">ЦВЕТ ИСКРЫ (курсор)</div>
+              <div class="color-picker" id="spark-color-picker"></div>
+            </div>
+
+            <div class="profile-section">
+              <div class="profile-section-title">ЦВЕТ ВЫДЕЛЕНИЯ</div>
+              <div class="color-picker" id="sel-color-picker"></div>
+            </div>
+
+            <button class="btn primary" onclick="saveProfile()">Сохранить изменения</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">📊 Статистика</span></div>
+          <div class="sb-section" style="font-size:10px;line-height:2">
+            Карма: <span id="pst-karma" style="color:var(--accent)">0</span><br>
+            Постов: <span id="pst-posts" style="color:var(--accent2)">0</span><br>
+            Комментов: <span id="pst-comments" style="color:var(--accent2)">0</span><br>
+            Форумов: <span id="pst-forums" style="color:var(--accent2)">0</span>
+          </div>
+        </div>
+        <div class="win" style="margin-top:8px">
+          <div class="win-title"><span class="win-title-txt">🜂 Пользовательское соглашение</span></div>
+          <div style="padding:8px;font-size:9px;color:var(--textd);line-height:1.7;font-style:italic">
+            «Настоящее соглашение заключено между Пользователем и Тем-Что-Существовало-До-Слов ещё в момент первого осознанного сна Пользователя. Подпись не требуется. Она уже стоит.»
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- TASKBAR -->
+<div id="taskbar">
+  <button class="tb-start">🜂 ПУСК</button>
+  <div class="tb-clock" id="tb-clock">00:00</div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+<script src="app.js"></script>
+</body>
+</html>
