@@ -290,8 +290,8 @@ select option { background:#1a0e00; }
 .chat-preview { color:var(--textd); font-size:9px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .chat-layout { display:grid; grid-template-columns:180px 1fr; }
 @media(max-width:500px){ .chat-layout { grid-template-columns:1fr; } }
-.messages-area { padding:8px; height:350px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
-.msg { max-width:80%; padding:5px 8px; border:1px solid var(--border); font-size:10px; line-height:1.5; }
+.messages-area { padding:8px; height:350px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; overflow-x:hidden; }
+.msg { max-width:80%; padding:5px 8px; border:1px solid var(--border); font-size:10px; line-height:1.5; word-break:break-word; white-space:pre-wrap; }
 .msg.mine { align-self:flex-end; background:#150a00; border-color:#3a1800; color:var(--text); }
 .msg.theirs { align-self:flex-start; background:#0a0700; color:var(--textd); }
 .msg-author { font-size:8px; color:var(--textd); margin-bottom:2px; }
