@@ -19,6 +19,16 @@ let DB = {
   forumPosts: {},
   messages: {}
 };
+// Настройка цветов для аур админов
+const ADMIN_COLORS = {
+  'MadGod': '#ff5500' // Кислотно-оранжевый
+};
+
+let attachedImage = null;
+function attachImage() {
+  const url = prompt('Введите прямой URL адрес картинки (https://...):');
+  if(url) { attachedImage = url; toast('Фото прикреплено к мыслеформе.'); }
+}
 let ME = null;
 let curForumId = null;
 let curChatPartner = null;
@@ -26,6 +36,18 @@ let dbLoaded = false;          // ЗАЩИТА ОТ ОБНУЛЕНИЯ
 let activeComposeId = 'compose-text';
 
 const SUPER_ADMINS = ['MadGod'];
+// Настройка цветов для аур админов
+const ADMIN_COLORS = {
+  'MadGod': '#ff5500' // Кислотно-оранжевый
+};
+
+function isAdmin() { return ME && SUPER_ADMINS.includes(ME.name); }
+
+let attachedImage = null;
+function attachImage() {
+  const url = prompt('Введите прямой URL адрес картинки (https://...):');
+  if(url) { attachedImage = url; toast('Фото прикреплено к мыслеформе.'); }
+}
 function isAdmin() { return ME && SUPER_ADMINS.includes(ME.name); }
 
 const LEVELS = ['неофит','блуждающий разум','ищущий','буйный','созерцатель','пуник','практик','знающий','████████','[ДАННЫЕ УДАЛЕНЫ]'];
@@ -231,10 +253,18 @@ function startApp() {
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('nav-uname').textContent = ME.name;
+  
+  // ВКЛЮЧАЕМ ИНСТРУМЕНТЫ БОГА
+  if (isAdmin()) {
+    document.getElementById('btn-attach-img').style.display = 'inline-block';
+    document.getElementById('extranet-panel').style.display = 'block';
+  }
+
   document.getElementById('prophecy-bar').textContent = makeProphecy();
   setSparkColor(ME.sparkColor||'#ff6600');
   setSelColor(ME.selBg||'#3a0000', ME.selFg||'#ff4400');
   if(ME.theme) document.body.className = ME.theme;
+  
   renderFeed(); renderSidebar(); renderForums(); renderMyForumsList();
   renderColorPickers(); renderProfilePage(); renderDialogs();
   updateForumSelect();
@@ -280,33 +310,52 @@ function renderFeed() {
 
 function renderPost(p, ctx = 'feed') {
   const author = DB.users.find(u=>u.name===p.author)||{name:p.author,avatar:'?',karma:0};
-  const isPostAdmin = p.pinned;
   const myRes = p.likes&&p.likes.includes(ME.name);
   const myCurse = p.dislikes&&p.dislikes.includes(ME.name);
   const myMental = p.mentalDmg&&p.mentalDmg.includes(ME.name);
   const cmtCount = (DB.comments[p.id]||[]).length;
   const ring = karmaRing(author.karma||0);
   const forumRef = p.forumId ? `<div class="post-forum-ref">📡 <a onclick="openForum('${p.forumId}')">${getForumName(p.forumId)}</a></div>` : '';
-  const adminTag = isPostAdmin ? `<span class="post-tag admin">ЗАКРЕПЛЕНО</span>` : '';
-  const adminClass = isPostAdmin ? ' admin' : '';
   const body = p.body.replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
   const cmtSection = renderComments(p.id, ctx);
   const canDelete = p.author === ME.name || isAdmin();
   const reportCount = (p.reports||[]).length;
   const lvl = author.level && author.level !== 'неофит' ? `<span class="level-badge">${author.level}</span>` : '';
 
-  return `<div class="post${adminClass}" id="post-${ctx}-${p.id}">
+  // === ЛОГИКА АУР И СТАТУСОВ ===
+  let postClass = 'post';
+  let customStyle = '';
+  let specialTag = '';
+
+  if (p.isExtranet) {
+    postClass += ' extranet-post';
+    specialTag = `<span class="post-tag extranet-tag">ЭКСТРАНЕТ</span>`;
+  } else if (SUPER_ADMINS.includes(p.author)) {
+    postClass += ' admin-aura';
+    const auraColor = ADMIN_COLORS[p.author] || 'var(--adminc)';
+    customStyle = `style="--aura: ${auraColor};"`;
+    specialTag = `<span class="post-tag admin" style="color:${auraColor}; border-color:${auraColor}">${p.author === 'MadGod' ? 'БЕЗУМНЫЙ БОГ' : 'АДМИН'}</span>`;
+  } else if (p.pinned) {
+    postClass += ' admin';
+    specialTag = `<span class="post-tag admin">ЗАКРЕПЛЕНО</span>`;
+  }
+
+  // === ЛОГИКА ФОТО ===
+  const imgHtml = p.image ? `<div class="post-image-wrap"><img src="${p.image}" class="post-attached-img" onclick="window.open('${p.image}','_blank')"></div>` : '';
+  
+  // ИСПРАВЛЕННАЯ СТРОКА: Убрали undefined переменную adminClass
+  return `<div class="${postClass}" id="post-${ctx}-${p.id}" ${customStyle}>
     <div class="post-hdr">
       <div class="avatar">${author.avatar||'?'}<div class="karma-ring ${ring}"></div></div>
       <div class="post-meta">
-        <span class="post-author${isPostAdmin?' admin-name':''}" onclick="openUserPage('${p.author}')">${p.author}</span>${adminTag}${lvl}
+        <span class="post-author${SUPER_ADMINS.includes(p.author)?' admin-name':''}" onclick="openUserPage('${p.author}')">${p.author}</span>${specialTag}${lvl}
         <button class="btn sm" style="margin-left:4px;font-size:8px" onclick="startChat('${p.author}')">✉</button>
         ${p.author!==ME.name?`<button class="btn sm" style="font-size:8px;margin-left:2px" onclick="toggleSub('${p.author}')">${(ME.subs||[]).includes(p.author)?'−подписка':'+ подписка'}</button>`:''}
         <br><span class="post-time">${timeAgo(p.ts)}</span>
       </div>
     </div>
     ${forumRef}
-    <div class="post-body">${body}</div>
+    <div class="post-body">${body}${imgHtml}</div>
     <div class="post-actions">
       <button class="act${myRes?' liked':''}" onclick="reactPost('${p.id}','resonance')" title="Резонанс">⟡ ${(p.likes||[]).length}</button>
       <button class="act${myCurse?' disliked':''}" onclick="reactPost('${p.id}','curse')" title="Проклятие">☠ ${(p.dislikes||[]).length}</button>
@@ -318,35 +367,31 @@ function renderPost(p, ctx = 'feed') {
     <div class="comments-section" id="cmts-${ctx}-${p.id}">${cmtSection}</div>
   </div>`;
 }
-
-function renderComments(postId, ctx) {
-  const cmts = DB.comments[postId]||[];
-  const forms = `<div class="comment-form">
-    <input id="ci-${ctx}-${postId}" placeholder="Ваш комментарий..." onkeydown="if(event.key==='Enter')submitComment('${postId}', '${ctx}')">
-    <button class="btn sm primary" onclick="submitComment('${postId}', '${ctx}')">⟡</button>
-  </div>`;
-  if(!cmts.length) return forms;
-  const list = cmts.map(c=>{
-    const au = DB.users.find(u=>u.name===c.author)||{avatar:'?'};
-    const canDelCmt = c.author === ME.name || isAdmin();
-    const myRes = (c.resonance||[]).includes(ME.name);
-    const myCurse = (c.curses||[]).includes(ME.name);
-    const myMental = (c.mentalDmg||[]).includes(ME.name);
-    return `<div class="comment">
-      <div class="comment-avatar">${au.avatar||'?'}</div>
-      <div style="flex:1">
-        <div class="comment-meta"><span class="comment-author" onclick="openUserPage('${c.author}')">${c.author}</span> · ${timeAgo(c.ts)}</div>
-        <div class="comment-body" style="word-break:break-word;">${c.body}</div>
-        <div class="cmt-actions">
-          <button class="act sm${myRes?' liked':''}" onclick="reactComment('${postId}','${c.id}','resonance')" title="Резонанс">⟡ ${(c.resonance||[]).length}</button>
-          <button class="act sm${myCurse?' disliked':''}" onclick="reactComment('${postId}','${c.id}','curse')" title="Проклятие">☠ ${(c.curses||[]).length}</button>
-          <button class="act sm${myMental?' mentald':''}" onclick="reactComment('${postId}','${c.id}','mental')" title="Ментальный урон">Ψ ${(c.mentalDmg||[]).length}</button>
-          ${canDelCmt ? `<button class="act danger sm" onclick="deleteComment('${postId}', '${c.id}')">✕</button>` : ''}
-        </div>
+  // === ЛОГИКА ФОТО ===
+  const imgHtml = p.image ? `<div class="post-image-wrap"><img src="${p.image}" class="post-attached-img" onclick="window.open('${p.image}','_blank')"></div>` : '';
+  
+return `<div class="${postClass}" id="post-${ctx}-${p.id}" ${customStyle}>
+    <div class="post-hdr">
+      <div class="avatar">${author.avatar||'?'}<div class="karma-ring ${ring}"></div></div>
+      <div class="post-meta">
+        <span class="post-author${SUPER_ADMINS.includes(p.author)?' admin-name':''}" onclick="openUserPage('${p.author}')">${p.author}</span>${specialTag}${lvl}
+        <button class="btn sm" style="margin-left:4px;font-size:8px" onclick="startChat('${p.author}')">✉</button>
+        ${p.author!==ME.name?`<button class="btn sm" style="font-size:8px;margin-left:2px" onclick="toggleSub('${p.author}')">${(ME.subs||[]).includes(p.author)?'−подписка':'+ подписка'}</button>`:''}
+        <br><span class="post-time">${timeAgo(p.ts)}</span>
       </div>
-    </div>`;
-  }).join('');
-  return list+forms;
+    </div>
+    ${forumRef}
+    <div class="post-body">${body}${imgHtml}</div>
+    <div class="post-actions">
+      <button class="act${myRes?' liked':''}" onclick="reactPost('${p.id}','resonance')" title="Резонанс">⟡ ${(p.likes||[]).length}</button>
+      <button class="act${myCurse?' disliked':''}" onclick="reactPost('${p.id}','curse')" title="Проклятие">☠ ${(p.dislikes||[]).length}</button>
+      <button class="act${myMental?' mentald':''}" onclick="reactPost('${p.id}','mental')" title="Ментальный урон">Ψ ${(p.mentalDmg||[]).length}</button>
+      <button class="act" onclick="toggleComments('${p.id}', '${ctx}')">↩ ${cmtCount}</button>
+      ${canDelete ? `<button class="act danger" onclick="deletePost('${p.id}')">✕</button>` : ''}
+      <button class="act${reportCount>0?' reported':''}" onclick="reportPost('${p.id}')" title="Жалоба в Инквизицию">⚔${reportCount>0?' '+reportCount:''}</button>
+    </div>
+    <div class="comments-section" id="cmts-${ctx}-${p.id}">${cmtSection}</div>
+  </div>`;
 }
 
 // Обновляем все открытые секции комментов к посту
@@ -405,9 +450,15 @@ function deleteComment(postId, cmtId) {
 // ===== POSTS =====
 function submitPost() {
   const txt = document.getElementById('compose-text').value.trim();
-  if(!txt) { toast('Пустая мыслеформа не транслируется.'); return; }
+  if(!txt && !attachedImage) { toast('Пустая мыслеформа не транслируется.'); return; }
   const forumId = document.getElementById('post-forum-sel').value || null;
-  const p = { id:uid(), author:ME.name, body:txt, ts:Date.now(), likes:[], dislikes:[], mentalDmg:[], reports:[], forumId, pinned:false };
+  
+  // ВОТ ТУТ МЫ ДОБАВИЛИ image: attachedImage
+  const p = { id:uid(), author:ME.name, body:txt, ts:Date.now(), likes:[], dislikes:[], mentalDmg:[], reports:[], forumId, pinned:false, image: attachedImage };
+  
+  // ОБНУЛЯЕМ картинку, чтобы не прикрепилась к следующему посту
+  attachedImage = null; 
+
   DB.posts.push(p);
   ME.postCount = (ME.postCount||0)+1;
   updateUser(ME); save();
@@ -420,20 +471,21 @@ function submitPost() {
   toast('Трансляция принята. Эфир обновлён.');
 }
 
-function insertSpoiler() {
-  const ta = document.getElementById(activeComposeId) || document.getElementById('compose-text');
-  const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd) || 'скрытый текст';
-  const before = ta.value.substring(0, ta.selectionStart);
-  const after = ta.value.substring(ta.selectionEnd);
-  ta.value = before + '[spoiler]' + sel + '[/spoiler]' + after;
+// НОВАЯ ФУНКЦИЯ ДЛЯ ЭКСТРАНЕТА (Вставлять прямо под submitPost)
+function submitExtranetPost() {
+  if (!isAdmin()) { toast('У вас нет доступа к Экстранету.'); return; }
+  const author = document.getElementById('ex-author').value.trim() || 'НЕИЗВЕСТНО';
+  const txt = document.getElementById('ex-text').value.trim();
+  if(!txt) return;
+  
+  const p = { id:uid(), author:author, body:txt, ts:Date.now(), likes:[], dislikes:[], mentalDmg:[], reports:[], forumId:null, pinned:false, isExtranet:true };
+  DB.posts.push(p);
+  save();
+  document.getElementById('ex-author').value='';
+  document.getElementById('ex-text').value='';
+  renderFeed();
+  toast('Сущность внедрена в Эфир.');
 }
-
-document.getElementById('compose-text').addEventListener('input', function(){
-  document.getElementById('compose-len').textContent = this.value.length;
-});
-document.getElementById('compose-text').addEventListener('focus', function(){
-  activeComposeId = 'compose-text';
-});
 
 // ===== SYMBOL PICKER =====
 function toggleSymbolPicker(ctx) {
