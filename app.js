@@ -330,7 +330,90 @@ function renderPost(p, ctx = 'feed') {
     postClass += ' admin';
     specialTag = `<span class="post-tag admin">ЗАКРЕПЛЕНО</span>`;
   }
+// === ВОТ ЭТОТ БЛОК НУЖНО ВСТАВИТЬ СРАЗУ ПОСЛЕ renderPost ===
+function renderComments(postId, ctx) {
+  const cmts = DB.comments[postId]||[];
+  const forms = `<div class="comment-form">
+    <input id="ci-${ctx}-${postId}" placeholder="Ваш комментарий..." onkeydown="if(event.key==='Enter')submitComment('${postId}', '${ctx}')">
+    <button class="btn sm primary" onclick="submitComment('${postId}', '${ctx}')">⟡</button>
+  </div>`;
+  if(!cmts.length) return forms;
+  const list = cmts.map(c=>{
+    const au = DB.users.find(u=>u.name===c.author)||{avatar:'?'};
+    const canDelCmt = c.author === ME.name || isAdmin();
+    const myRes = (c.resonance||[]).includes(ME.name);
+    const myCurse = (c.curses||[]).includes(ME.name);
+    const myMental = (c.mentalDmg||[]).includes(ME.name);
+    return `<div class="comment">
+      <div class="comment-avatar">${au.avatar||'?'}</div>
+      <div style="flex:1">
+        <div class="comment-meta"><span class="comment-author" onclick="openUserPage('${c.author}')">${c.author}</span> · ${timeAgo(c.ts)}</div>
+        <div class="comment-body" style="word-break:break-word;">${c.body}</div>
+        <div class="cmt-actions">
+          <button class="act sm${myRes?' liked':''}" onclick="reactComment('${postId}','${c.id}','resonance')" title="Резонанс">⟡ ${(c.resonance||[]).length}</button>
+          <button class="act sm${myCurse?' disliked':''}" onclick="reactComment('${postId}','${c.id}','curse')" title="Проклятие">☠ ${(c.curses||[]).length}</button>
+          <button class="act sm${myMental?' mentald':''}" onclick="reactComment('${postId}','${c.id}','mental')" title="Ментальный урон">Ψ ${(c.mentalDmg||[]).length}</button>
+          ${canDelCmt ? `<button class="act danger sm" onclick="deleteComment('${postId}', '${c.id}')">✕</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return list+forms;
+}
 
+// Обновляем все открытые секции комментов к посту
+function updateCommentUI(postId) {
+  ['feed','forum','profile','modal'].forEach(ctx => {
+    const el = document.getElementById(`cmts-${ctx}-${postId}`);
+    if(el) el.innerHTML = renderComments(postId, ctx);
+  });
+}
+
+function reactComment(postId, cmtId, type) {
+  const cmts = DB.comments[postId];
+  if(!cmts) return;
+  const c = cmts.find(x => x.id === cmtId);
+  if(!c) return;
+  const field = type === 'resonance' ? 'resonance' : type === 'curse' ? 'curses' : 'mentalDmg';
+  if(!c[field]) c[field] = [];
+  const idx = c[field].indexOf(ME.name);
+  if(idx > -1) {
+    c[field].splice(idx, 1);
+    if(type === 'resonance') karmaHit(c.author, -1);
+    if(type === 'curse')     karmaHit(c.author,  1);
+  } else {
+    c[field].push(ME.name);
+    if(type === 'resonance') karmaHit(c.author,  1);
+    if(type === 'curse')     karmaHit(c.author, -1);
+  }
+  save();
+  updateCommentUI(postId);
+}
+
+function toggleComments(id, ctx) {
+  const el = document.getElementById(`cmts-${ctx}-${id}`);
+  el.classList.toggle('open');
+  if(el.classList.contains('open')) el.innerHTML = renderComments(id, ctx);
+}
+
+function submitComment(postId, ctx) {
+  const inp = document.getElementById(`ci-${ctx}-${postId}`);
+  const body = inp.value.trim();
+  if(!body) return;
+  if(!DB.comments[postId]) DB.comments[postId]=[];
+  DB.comments[postId].push({id:uid(),author:ME.name,body,ts:Date.now(),resonance:[],curses:[],mentalDmg:[]});
+  ME.commentCount = (ME.commentCount||0)+1;
+  updateUser(ME); save();
+  updateCommentUI(postId);
+}
+
+function deleteComment(postId, cmtId) {
+  if(!DB.comments[postId]) return;
+  DB.comments[postId] = DB.comments[postId].filter(c => c.id !== cmtId);
+  save(); toast('Комментарий стёрт.');
+  updateCommentUI(postId);
+}
+// === КОНЕЦ БЛОКА ===
   // === ЛОГИКА ФОТО ===
   const imgHtml = p.image ? `<div class="post-image-wrap"><img src="${p.image}" class="post-attached-img" onclick="window.open('${p.image}','_blank')"></div>` : '';
 
