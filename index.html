@@ -100,12 +100,28 @@
             <div style="display:flex;gap:4px;margin-top:6px;align-items:center;flex-wrap:wrap">
               <button class="btn primary" onclick="submitPost()">⟡ Транслировать</button>
               <button class="btn sm" onclick="insertSpoiler()">▓ Спойлер</button>
+              <button class="btn sm" id="btn-attach-img" style="display:none; border-color:var(--adminc); color:var(--adminc)" onclick="attachImage()">📎 Фото (URL)</button>
               <button class="btn sm" onclick="toggleSymbolPicker('main')" title="Символы стихий">🜂 Символы</button>
               <span id="compose-len" style="margin-left:auto;color:var(--textd);font-size:9px">0</span>
             </div>
           </div>
         </div>
 
+
+
+<div class="win" id="extranet-panel" style="display:none; margin-bottom:8px; border-color:#9900ff; box-shadow:0 0 15px rgba(150,0,255,0.2)">
+          <div class="win-title" style="background:linear-gradient(180deg,#330066,#110022);">
+            <span class="win-title-txt" style="color:#eebbff; text-shadow:0 0 8px #9900ff">👁 ЭКСТРАНЕТ (Dev Tool)</span>
+          </div>
+          <div class="compose-panel" style="background:#0a0011">
+            <input id="ex-author" placeholder="Имя фантома (автор)..." style="margin-bottom:6px; background:#1a0022; border-color:#9900ff; color:#eebbff">
+            <textarea id="ex-text" placeholder="Сообщение извне..." style="background:#1a0022; border-color:#9900ff; color:#eebbff"></textarea>
+            <div style="margin-top:6px">
+              <button class="btn" style="background:#4a0088; color:#fff; border-color:#9900ff; text-shadow:0 0 5px #fff" onclick="submitExtranetPost()">Внедрить в Эфир</button>
+            </div>
+          </div>
+        </div>
+        
         <!-- FEED -->
         <div class="win">
           <div class="win-title">
