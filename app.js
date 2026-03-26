@@ -19,25 +19,15 @@ let DB = {
   forumPosts: {},
   messages: {}
 };
-// Настройка цветов для аур админов
-const ADMIN_COLORS = {
-  'MadGod': '#ff5500' // Кислотно-оранжевый
-};
-
-let attachedImage = null;
-function attachImage() {
-  const url = prompt('Введите прямой URL адрес картинки (https://...):');
-  if(url) { attachedImage = url; toast('Фото прикреплено к мыслеформе.'); }
-}
 let ME = null;
 let curForumId = null;
 let curChatPartner = null;
 let dbLoaded = false;          // ЗАЩИТА ОТ ОБНУЛЕНИЯ
 let activeComposeId = 'compose-text';
 
+// ===== НАСТРОЙКИ АДМИНОВ И ФОТО =====
 const SUPER_ADMINS = ['MadGod'];
-// Настройка цветов для аур админов
-const ADMIN_COLORS = {
+const  = {
   'MadGod': '#ff5500' // Кислотно-оранжевый
 };
 
@@ -48,9 +38,8 @@ function attachImage() {
   const url = prompt('Введите прямой URL адрес картинки (https://...):');
   if(url) { attachedImage = url; toast('Фото прикреплено к мыслеформе.'); }
 }
-function isAdmin() { return ME && SUPER_ADMINS.includes(ME.name); }
 
-const LEVELS = ['неофит','блуждающий разум','ищущий','буйный','созерцатель','пуник','практик','знающий','████████','[ДАННЫЕ УДАЛЕНЫ]'];
+const LEVELS = ['неофит','блуждающий разум','ищущий','буйный','созерцатель','пуник','практик','знающий','пустое поле'];
 
 const SYMBOLS = ['🜂','🜄','🜃','🜁','☽','☉','☿','⚗','🝊','🜔','✦','⟡','⊷','⊶','★','⚡','Ψ','⊕','☯','♾','∞','△','▽','◇','⚸','❋','✶','⊻','∴','∵','◉','⊗'];
 
@@ -332,7 +321,7 @@ function renderPost(p, ctx = 'feed') {
     specialTag = `<span class="post-tag extranet-tag">ЭКСТРАНЕТ</span>`;
   } else if (SUPER_ADMINS.includes(p.author)) {
     postClass += ' admin-aura';
-    const auraColor = ADMIN_COLORS[p.author] || 'var(--adminc)';
+    const auraColor = [p.author] || 'var(--adminc)';
     customStyle = `style="--aura: ${auraColor};"`;
     specialTag = `<span class="post-tag admin" style="color:${auraColor}; border-color:${auraColor}">${p.author === 'MadGod' ? 'БЕЗУМНЫЙ БОГ' : 'АДМИН'}</span>`;
   } else if (p.pinned) {
