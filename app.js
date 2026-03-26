@@ -323,7 +323,7 @@ function renderPost(p, ctx = 'feed') {
     specialTag = `<span class="post-tag extranet-tag">ЭКСТРАНЕТ</span>`;
   } else if (SUPER_ADMINS.includes(p.author)) {
     postClass += ' admin-aura';
-    const auraColor = [p.author] || 'var(--adminc)';
+    const auraColor = ADMIN_COLORS[p.author] || 'var(--adminc)';
     customStyle = `style="--aura: ${auraColor};"`;
     specialTag = `<span class="post-tag admin" style="color:${auraColor}; border-color:${auraColor}">${p.author === 'MadGod' ? 'БЕЗУМНЫЙ БОГ' : 'АДМИН'}</span>`;
   } else if (p.pinned) {
@@ -333,8 +333,7 @@ function renderPost(p, ctx = 'feed') {
 
   // === ЛОГИКА ФОТО ===
   const imgHtml = p.image ? `<div class="post-image-wrap"><img src="${p.image}" class="post-attached-img" onclick="window.open('${p.image}','_blank')"></div>` : '';
-  
-  // ИСПРАВЛЕННАЯ СТРОКА: Убрали undefined переменную adminClass
+
   return `<div class="${postClass}" id="post-${ctx}-${p.id}" ${customStyle}>
     <div class="post-hdr">
       <div class="avatar">${author.avatar||'?'}<div class="karma-ring ${ring}"></div></div>
@@ -358,33 +357,6 @@ function renderPost(p, ctx = 'feed') {
     <div class="comments-section" id="cmts-${ctx}-${p.id}">${cmtSection}</div>
   </div>`;
 }
-  // === ЛОГИКА ФОТО ===
-  const imgHtml = p.image ? `<div class="post-image-wrap"><img src="${p.image}" class="post-attached-img" onclick="window.open('${p.image}','_blank')"></div>` : '';
-  
-return `<div class="${postClass}" id="post-${ctx}-${p.id}" ${customStyle}>
-    <div class="post-hdr">
-      <div class="avatar">${author.avatar||'?'}<div class="karma-ring ${ring}"></div></div>
-      <div class="post-meta">
-        <span class="post-author${SUPER_ADMINS.includes(p.author)?' admin-name':''}" onclick="openUserPage('${p.author}')">${p.author}</span>${specialTag}${lvl}
-        <button class="btn sm" style="margin-left:4px;font-size:8px" onclick="startChat('${p.author}')">✉</button>
-        ${p.author!==ME.name?`<button class="btn sm" style="font-size:8px;margin-left:2px" onclick="toggleSub('${p.author}')">${(ME.subs||[]).includes(p.author)?'−подписка':'+ подписка'}</button>`:''}
-        <br><span class="post-time">${timeAgo(p.ts)}</span>
-      </div>
-    </div>
-    ${forumRef}
-    <div class="post-body">${body}${imgHtml}</div>
-    <div class="post-actions">
-      <button class="act${myRes?' liked':''}" onclick="reactPost('${p.id}','resonance')" title="Резонанс">⟡ ${(p.likes||[]).length}</button>
-      <button class="act${myCurse?' disliked':''}" onclick="reactPost('${p.id}','curse')" title="Проклятие">☠ ${(p.dislikes||[]).length}</button>
-      <button class="act${myMental?' mentald':''}" onclick="reactPost('${p.id}','mental')" title="Ментальный урон">Ψ ${(p.mentalDmg||[]).length}</button>
-      <button class="act" onclick="toggleComments('${p.id}', '${ctx}')">↩ ${cmtCount}</button>
-      ${canDelete ? `<button class="act danger" onclick="deletePost('${p.id}')">✕</button>` : ''}
-      <button class="act${reportCount>0?' reported':''}" onclick="reportPost('${p.id}')" title="Жалоба в Инквизицию">⚔${reportCount>0?' '+reportCount:''}</button>
-    </div>
-    <div class="comments-section" id="cmts-${ctx}-${p.id}">${cmtSection}</div>
-  </div>`;
-}
-
 // Обновляем все открытые секции комментов к посту
 function updateCommentUI(postId) {
   ['feed','forum','profile','modal'].forEach(ctx => {
