@@ -46,13 +46,13 @@
           <div class="avatar-opt selected" data-av="🜂" onclick="selectAv(this)">🜂</div>
           <div class="avatar-opt" data-av="🜄" onclick="selectAv(this)">🜄</div>
           <div class="avatar-opt" data-av="🜃" onclick="selectAv(this)">🜃</div>
-          <div class="avatar-opt" data-av="🜁" onclick="selectAv(this)">🜁</div>          
+          <div class="avatar-opt" data-av="🜁" onclick="selectAv(this)">🜁</div>
           <div class="avatar-opt" data-av="🝊" onclick="selectAv(this)">🝊</div>
           <div class="avatar-opt" data-av="☽" onclick="selectAv(this)">☽</div>
           <div class="avatar-opt" data-av="⚗" onclick="selectAv(this)">⚗</div>
           <div class="avatar-opt" data-av="🜏" onclick="selectAv(this)">☉</div>
           <div class="avatar-opt" data-av="☿" onclick="selectAv(this)">☿</div>
-          <div class="avatar-opt" data-av="🜔" onclick="selectAv(this)">🜔</div>      
+          <div class="avatar-opt" data-av="🜔" onclick="selectAv(this)">🜔</div>
         </div>
       </div>
       <button class="btn primary" style="width:100%;margin-top:4px" onclick="doRegister()">Создать личность</button>
@@ -72,6 +72,7 @@
     <button class="nav-tab active" onclick="showPage('ether')">⟡ Эфир</button>
     <button class="nav-tab" onclick="showPage('broadcasts')">📡 Вещания</button>
     <button class="nav-tab" onclick="showPage('chats')">✉ Личные чаты <span id="unread-badge" class="badge" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="showPage('mypage')">📋 Мои Трансляции</button>
     <button class="nav-tab" onclick="showPage('profile')">🝊 Астральное тело</button>
     <div class="nav-right">
       <span class="online-dot"></span><span id="nav-uname" style="color:var(--accent2)"></span>
@@ -94,9 +95,12 @@
               <option value="">— Личная трансляция (без форума) —</option>
             </select>
             <textarea id="compose-text" placeholder="Что происходит в твоём сознании..."></textarea>
-            <div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+            <!-- Символьная клавиатура -->
+            <div id="symbol-picker-main" class="symbol-picker" style="display:none"></div>
+            <div style="display:flex;gap:4px;margin-top:6px;align-items:center;flex-wrap:wrap">
               <button class="btn primary" onclick="submitPost()">⟡ Транслировать</button>
               <button class="btn sm" onclick="insertSpoiler()">▓ Спойлер</button>
+              <button class="btn sm" onclick="toggleSymbolPicker('main')" title="Символы стихий">🜂 Символы</button>
               <span id="compose-len" style="margin-left:auto;color:var(--textd);font-size:9px">0</span>
             </div>
           </div>
@@ -106,9 +110,7 @@
         <div class="win">
           <div class="win-title">
             <span class="win-title-txt">⊶ Эфир — Ваша лента</span>
-            <div class="wbtns">
-              <div class="wbtn x">✕</div>
-            </div>
+            <div class="wbtns"><div class="wbtn x">✕</div></div>
           </div>
           <div id="feed-list"></div>
           <div class="statusbar">
@@ -170,7 +172,10 @@
         <div class="win" id="forum-view" style="display:none">
           <div class="win-title">
             <span class="win-title-txt" id="fv-title">Форум</span>
-            <div class="wbtns"><div class="wbtn x" onclick="closeForum()">✕</div></div>
+            <div class="wbtns">
+              <button class="btn sm danger" id="fv-delete-btn" style="font-size:8px;display:none" onclick="deleteForum(curForumId)">✕ Удалить форум</button>
+              <div class="wbtn x" onclick="closeForum()">✕</div>
+            </div>
           </div>
           <div class="win-title" style="background:transparent;border-bottom:1px solid var(--border)">
             <span style="color:var(--textd);font-size:10px" id="fv-desc"></span>
@@ -181,8 +186,13 @@
           <div id="fv-posts"></div>
           <div class="compose-panel" id="fv-compose" style="display:none">
             <div class="compose-label">НАПИСАТЬ В ФОРУМ</div>
-            <textarea id="fv-text" placeholder="Ваша мыслеформа..."></textarea>
-            <div style="margin-top:4px"><button class="btn primary" onclick="submitForumPost()">Транслировать</button></div>
+            <textarea id="fv-text" placeholder="Ваша мыслеформа..." onfocus="activeComposeId='fv-text'"></textarea>
+            <!-- Символьная клавиатура для форума -->
+            <div id="symbol-picker-forum" class="symbol-picker" style="display:none"></div>
+            <div style="margin-top:4px;display:flex;gap:4px">
+              <button class="btn primary" onclick="submitForumPost()">Транслировать</button>
+              <button class="btn sm" onclick="toggleSymbolPicker('forum')" title="Символы стихий">🜂 Символы</button>
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +255,37 @@
     </div>
   </div>
 
-  <!-- ===== PROFILE ===== -->
+  <!-- ===== MY PAGE (МОИ ТРАНСЛЯЦИИ) ===== -->
+  <div id="page-mypage" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win">
+          <div class="win-title">
+            <span class="win-title-txt" id="mypage-win-title">📋 Мои Трансляции</span>
+          </div>
+          <div id="mypage-content" style="padding:12px"></div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">📊 Статистика Духа</span></div>
+          <div id="mypage-stats" class="sb-section"></div>
+        </div>
+        <div class="win" style="margin-top:8px">
+          <div class="win-title"><span class="win-title-txt">🔗 Связи</span></div>
+          <div id="mypage-subs" class="sb-section" style="font-size:10px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="win" style="max-width:960px;margin:8px auto 0">
+      <div class="win-title">
+        <span class="win-title-txt" id="mypage-posts-title">Мои Трансляции</span>
+      </div>
+      <div id="mypage-posts-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE (ASTRAL BODY) ===== -->
   <div id="page-profile" class="page">
     <div class="layout2">
       <div>
@@ -277,18 +317,18 @@
                 </div>
               </div>
             </div>
-            
-<div class="profile-section">
-              <div class="profile-section-title">Призма восприятия </div>
-              <div style="display:flex; gap:6px; margin-top:8px;">
-                <button class="btn sm" onclick="setTheme('')">Глубина </button>
-                <button class="btn sm" onclick="setTheme('theme-light')">Озарение </button>
-                <button class="btn sm" onclick="setTheme('theme-xp')">Технократия </button>
+
+            <div class="profile-section">
+              <div class="profile-section-title">ПРИЗМА ВОСПРИЯТИЯ</div>
+              <div style="display:flex;gap:6px;margin-top:8px;">
+                <button class="btn sm" onclick="setTheme('')">Глубина</button>
+                <button class="btn sm" onclick="setTheme('theme-light')">Озарение</button>
+                <button class="btn sm" onclick="setTheme('theme-xp')">Технократия</button>
               </div>
             </div>
-            
+
             <div class="profile-section">
-              <div class="profile-section-title">ЦВЕТ ИСКРЫ </div>
+              <div class="profile-section-title">ЦВЕТ ИСКРЫ</div>
               <div class="color-picker" id="spark-color-picker"></div>
             </div>
 
@@ -323,14 +363,25 @@
 
 </div><!-- /app -->
 
+<!-- USER PROFILE MODAL -->
+<div class="modal-bg" id="modal-user-page">
+  <div class="win" style="width:520px;max-width:96vw;max-height:85vh;overflow-y:auto">
+    <div class="win-title">
+      <span class="win-title-txt" id="modal-user-title">👤 Профиль</span>
+      <div class="wbtns"><div class="wbtn x" onclick="closeModal('modal-user-page')">✕</div></div>
+    </div>
+    <div id="modal-user-content" style="padding:12px"></div>
+  </div>
+</div>
+
 <!-- TASKBAR -->
 <div id="taskbar">
   <button class="tb-start">🜂 ПУСК</button>
   <div class="tb-clock" id="tb-clock">00:00</div>
 </div>
+
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-
 <script src="app.js"></script>
 </body>
 </html>
