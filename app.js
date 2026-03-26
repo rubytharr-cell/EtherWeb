@@ -1076,3 +1076,6 @@ document.addEventListener('copy',()=>{
     }
   },50);
 });
+
+
+function renderComments(postId, ctx) {
