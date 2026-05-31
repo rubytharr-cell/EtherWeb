@@ -74,6 +74,7 @@
     <button class="nav-tab" onclick="showPage('chats')">✉ Личные чаты <span id="unread-badge" class="badge" style="display:none">0</span></button>
     <button class="nav-tab" onclick="showPage('mypage')">📋 Мои Трансляции</button>
     <button class="nav-tab" onclick="showPage('profile')">🝊 Астральное тело</button>
+    <button class="nav-tab" onclick="showPage('minigames')">🎲 Мини-игры</button>
     <div class="nav-right">
       <span class="online-dot"></span><span id="nav-uname" style="color:var(--accent2)"></span>
       &nbsp;<button class="btn sm danger" onclick="doLogout()">выйти</button>
@@ -102,6 +103,26 @@
               <button class="btn sm" onclick="insertSpoiler()">▓ Спойлер</button>
               <button class="btn sm" id="btn-attach-img" style="display:none; border-color:var(--adminc); color:var(--adminc)" onclick="attachImage()">📎 Фото (URL)</button>
               <button class="btn sm" onclick="toggleSymbolPicker('main')" title="Символы стихий">🜂 Символы</button>
+              <select id="admin-html-insert" style="display:none;font-size:9px;background:var(--input);border:1px solid var(--adminc);color:var(--adminc);padding:1px 4px;height:22px;width:auto" onchange="insertAdminSnippet(this)">
+                <option value="">⚙ HTML-тег</option>
+                <option value="h1">H1 — Заголовок</option>
+                <option value="h2">H2 — Подзаголовок</option>
+                <option value="h3">H3 — Малый заголовок</option>
+                <option value="b">Жирный</option>
+                <option value="i">Курсив</option>
+                <option value="u">Подчёркнутый</option>
+                <option value="center">По центру</option>
+                <option value="marquee">Бегущая строка</option>
+                <option value="red">Красный текст</option>
+                <option value="gold">Золотой текст</option>
+                <option value="green">Зелёный текст</option>
+                <option value="big">Крупный шрифт</option>
+                <option value="small">Мелкий шрифт</option>
+                <option value="hr">Разделитель ─────</option>
+                <option value="br">Пустая строка</option>
+                <option value="code">Код</option>
+                <option value="details">Спойлер (HTML)</option>
+              </select>
               <span id="compose-len" style="margin-left:auto;color:var(--textd);font-size:9px">0</span>
             </div>
           </div>
@@ -336,10 +357,13 @@
 
             <div class="profile-section">
               <div class="profile-section-title">ПРИЗМА ВОСПРИЯТИЯ</div>
-              <div style="display:flex;gap:6px;margin-top:8px;">
-                <button class="btn sm" onclick="setTheme('')">Глубина</button>
-                <button class="btn sm" onclick="setTheme('theme-light')">Озарение</button>
-                <button class="btn sm" onclick="setTheme('theme-xp')">Технократия</button>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button class="btn sm" onclick="setTheme('')" style="border-color:#6a3000;color:#ff6600">Глубина</button>
+                <button class="btn sm" onclick="setTheme('theme-light')" style="border-color:#0055cc;color:#0055cc">Озарение</button>
+                <button class="btn sm" onclick="setTheme('theme-xp')" style="border-color:#0a6edd;color:#fff;background:#0050cc">Технократия</button>
+                <button class="btn sm" onclick="setTheme('theme-druid')" style="border-color:#2a5a2a;color:#44cc44">Друидская роща</button>
+                <button class="btn sm" onclick="setTheme('theme-bio')" style="border-color:#003a6a;color:#44ccff">Биолюминесценция</button>
+                <button class="btn sm" onclick="setTheme('theme-firefly')" style="border-color:#2a2a00;color:#ccee44">Светлячковая долина</button>
               </div>
             </div>
 
@@ -371,6 +395,34 @@
           <div class="win-title"><span class="win-title-txt">🜂 Пользовательское соглашение</span></div>
           <div style="padding:8px;font-size:9px;color:var(--textd);line-height:1.7;font-style:italic">
             «Настоящее соглашение заключено между Пользователем и Тем-Что-Существовало-До-Слов ещё в момент первого осознанного сна Пользователя. Подпись не требуется. Она уже стоит.»
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MINIGAMES ===== -->
+  <div id="page-minigames" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">🎲 Мини-игры</span></div>
+          <div style="padding:12px" id="minigames-content">
+            <div class="empty-state">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">⊷ Справка</span></div>
+          <div style="padding:8px;font-size:9px;color:var(--textd);line-height:1.8">
+            <b style="color:var(--accent)">Самоцветы</b><br>
+            d2 · d4 · d6 · d8 · d10 · d12 · d20 · d100<br>
+            Бросайте сколько угодно раз.<br><br>
+            <b style="color:var(--accent)">Кости судьбы</b><br>
+            Два d12: планета + астральный дом.<br><br>
+            <b style="color:var(--accent)">Сфера судьбы</b><br>
+            10d5: спектр от «Точно нет» до «Точно да».
           </div>
         </div>
       </div>
