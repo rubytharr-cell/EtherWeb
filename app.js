@@ -33,6 +33,22 @@ const ADMIN_COLORS = {
 
 function isAdmin() { return ME && SUPER_ADMINS.includes(ME.name); }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function stripHtml(s) {
+  return String(s).replace(/<[^>]*>/g,'').replace(/&[^;]+;/g,' ');
+}
+
+async function hashPassword(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function isHashed(s) { return /^[0-9a-f]{64}$/.test(s); }
+
 let attachedImage = null;
 function attachImage() {
   const url = prompt('Введите прямой URL адрес картинки (https://...):');
@@ -210,23 +226,34 @@ function selectAv(el) {
   el.classList.add('selected'); regAv = el.dataset.av;
 }
 
-function doLogin() {
+async function doLogin() {
   const name = document.getElementById('l-name').value.trim();
   const pass = document.getElementById('l-pass').value;
-  const u = DB.users.find(u=>u.name===name && u.pass===pass);
-  if (!u) { document.getElementById('l-err').style.display='block'; return; }
+  const errEl = document.getElementById('l-err');
+  const u = DB.users.find(u=>u.name===name);
+  if (!u) { errEl.style.display='block'; return; }
+  let ok = false;
+  if (isHashed(u.pass)) {
+    const h = await hashPassword(pass);
+    ok = (h === u.pass);
+  } else {
+    ok = (u.pass === pass);
+    if (ok) { u.pass = await hashPassword(pass); updateUser(u); save(); }
+  }
+  if (!ok) { errEl.style.display='block'; return; }
   ME = u; saveMe(); startApp();
 }
 
-function doRegister() {
+async function doRegister() {
   const name = document.getElementById('r-name').value.trim();
   const pass = document.getElementById('r-pass').value;
   const err = document.getElementById('r-err');
   if (!name || name.length < 2) { err.textContent='⚠ Позывной слишком короткий'; err.style.display='block'; return; }
   if (pass.length < 4) { err.textContent='⚠ Пароль слишком слабый'; err.style.display='block'; return; }
   if (DB.users.find(u=>u.name===name)) { err.textContent='⚠ Этот позывной уже занят'; err.style.display='block'; return; }
+  const hashedPass = await hashPassword(pass);
   const u = {
-    name, pass, avatar:regAv, karma:0, sparkColor:'#ff6600', selBg:'#3a0000', selFg:'#ff4400',
+    name, pass: hashedPass, avatar:regAv, karma:0, sparkColor:'#ff6600', selBg:'#3a0000', selFg:'#ff4400',
     subs:[], forums:[], postCount:0, commentCount:0, joined:Date.now(),
     surname:'', status:'', level:'неофит'
   };
@@ -245,10 +272,10 @@ function startApp() {
   document.getElementById('app').style.display='block';
   document.getElementById('nav-uname').textContent = ME.name;
   
-  // ВКЛЮЧАЕМ ИНСТРУМЕНТЫ БОГА
   if (isAdmin()) {
     document.getElementById('btn-attach-img').style.display = 'inline-block';
     document.getElementById('extranet-panel').style.display = 'block';
+    document.getElementById('admin-html-insert').style.display = 'inline-block';
   }
 
   document.getElementById('prophecy-bar').textContent = makeProphecy();
@@ -267,12 +294,13 @@ function showPage(p) {
   document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   const tabs = document.querySelectorAll('.nav-tab');
-  const map = {ether:0, broadcasts:1, chats:2, mypage:3, profile:4};
+  const map = {ether:0, broadcasts:1, chats:2, mypage:3, profile:4, minigames:5};
   if(map[p]!==undefined) tabs[map[p]].classList.add('active');
   if(p==='chats') renderDialogs();
   if(p==='profile') renderProfilePage();
   if(p==='broadcasts') renderForums();
   if(p==='mypage') renderMyPage(ME);
+  if(p==='minigames') renderMinigames();
 }
 
 // ===== KARMA RING =====
@@ -307,7 +335,8 @@ function renderPost(p, ctx = 'feed') {
   const cmtCount = (DB.comments[p.id]||[]).length;
   const ring = karmaRing(author.karma||0);
   const forumRef = p.forumId ? `<div class="post-forum-ref">📡 <a onclick="openForum('${p.forumId}')">${getForumName(p.forumId)}</a></div>` : '';
-  const body = p.body.replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
+  const rawBody = SUPER_ADMINS.includes(p.author) ? p.body : escapeHtml(p.body);
+  const body = rawBody.replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
   const cmtSection = renderComments(p.id, ctx);
   const canDelete = p.author === ME.name || isAdmin();
   const reportCount = (p.reports||[]).length;
@@ -348,7 +377,7 @@ function renderComments(postId, ctx) {
       <div class="comment-avatar">${au.avatar||'?'}</div>
       <div style="flex:1">
         <div class="comment-meta"><span class="comment-author" onclick="openUserPage('${c.author}')">${c.author}</span> · ${timeAgo(c.ts)}</div>
-        <div class="comment-body" style="word-break:break-word;">${c.body}</div>
+        <div class="comment-body" style="word-break:break-word;">${escapeHtml(c.body)}</div>
         <div class="cmt-actions">
           <button class="act sm${myRes?' liked':''}" onclick="reactComment('${postId}','${c.id}','resonance')" title="Резонанс">⟡ ${(c.resonance||[]).length}</button>
           <button class="act sm${myCurse?' disliked':''}" onclick="reactComment('${postId}','${c.id}','curse')" title="Проклятие">☠ ${(c.curses||[]).length}</button>
@@ -637,7 +666,7 @@ function renderSidebar() {
   if(!mf.length){ document.getElementById('sb-myforums').innerHTML='<div style="color:var(--textd);font-size:9px;padding:2px 0">Не состоите ни в одном</div>'; }
   else { document.getElementById('sb-myforums').innerHTML = mf.map(fid=>{ const f=DB.forums.find(x=>x.id===fid); return f?`<div class="sb-row"><a onclick="showPage('broadcasts');openForum('${f.id}')">${f.name}</a></div>`:''; }).join(''); }
   const hot = [...DB.posts].sort((a,b)=>(b.likes||[]).length-(a.likes||[]).length).slice(0,5);
-  document.getElementById('sb-hot').innerHTML = hot.length ? hot.map(p=>`<div class="sb-row"><a>${p.body.substring(0,28)}...</a><span>${(p.likes||[]).length}⟡</span></div>`).join('') : '<div style="color:var(--textd);font-size:9px">Пока пусто</div>';
+  document.getElementById('sb-hot').innerHTML = hot.length ? hot.map(p=>`<div class="sb-row"><a>${escapeHtml(stripHtml(p.body)).substring(0,28)}...</a><span>${(p.likes||[]).length}⟡</span></div>`).join('') : '<div style="color:var(--textd);font-size:9px">Пока пусто</div>';
 }
 
 // ===== FORUMS =====
@@ -1039,6 +1068,313 @@ function setTheme(theme) {
   if(ME) { ME.theme=theme; saveMe(); updateUser(ME); save(); }
 }
 
+// ===== ADMIN HTML SNIPPETS =====
+const ADMIN_SNIPPETS = {
+  'h1':      ['<h1>', '</h1>'],
+  'h2':      ['<h2>', '</h2>'],
+  'h3':      ['<h3>', '</h3>'],
+  'b':       ['<b>', '</b>'],
+  'i':       ['<i>', '</i>'],
+  'u':       ['<u>', '</u>'],
+  'center':  ['<center>', '</center>'],
+  'marquee': ['<marquee>', '</marquee>'],
+  'red':     ['<span style="color:#ff2200">', '</span>'],
+  'gold':    ['<span style="color:#ffaa00">', '</span>'],
+  'green':   ['<span style="color:#00cc44">', '</span>'],
+  'big':     ['<span style="font-size:24px">', '</span>'],
+  'small':   ['<span style="font-size:9px">', '</span>'],
+  'hr':      ['<hr>', ''],
+  'br':      ['<br><br>', ''],
+  'code':    ['<code>', '</code>'],
+  'details': ['<details><summary>Раскрыть</summary>', '</details>'],
+};
+
+function insertAdminSnippet(sel) {
+  const val = sel.value;
+  sel.value = '';
+  if (!val) return;
+  const pair = ADMIN_SNIPPETS[val];
+  if (!pair) return;
+  const ta = document.getElementById(activeComposeId) || document.getElementById('compose-text');
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = ta.value.substring(start, end);
+  ta.value = ta.value.substring(0, start) + pair[0] + selected + pair[1] + ta.value.substring(end);
+  ta.selectionStart = ta.selectionEnd = start + pair[0].length + selected.length;
+  ta.focus();
+  const lenEl = document.getElementById('compose-len');
+  if (lenEl) lenEl.textContent = ta.value.length;
+}
+
+// ===== МИНИ-ИГРЫ =====
+const DICE_TYPES = [
+  { label:'d2',   sides:2,   shape:'◐' },
+  { label:'d4',   sides:4,   shape:'◆' },
+  { label:'d6',   sides:6,   shape:'■' },
+  { label:'d8',   sides:8,   shape:'◈' },
+  { label:'d10',  sides:10,  shape:'⬟' },
+  { label:'d12',  sides:12,  shape:'⬡' },
+  { label:'d20',  sides:20,  shape:'△' },
+  { label:'d100', sides:100, shape:'○' },
+];
+
+const PLANETS = [
+  { name:'Солнце',              desc:'Ядро. Осознанная воля, эго, центральный процесс, проявление инициативы, проливание света на ситуацию.' },
+  { name:'Луна',                desc:'Фоновый процесс. Подсознание, эмоции, базовая потребность в безопасности, память, инстинктивная адаптация.' },
+  { name:'Меркурий',            desc:'Маршрутизатор. Обмен информацией, логика, сухой анализ, переговоры, логистика, короткие контакты.' },
+  { name:'Венера',              desc:'Сборка ресурсов. Накопление энергии, притяжение, поиск гармонии, материальные и личные ценности, комфорт.' },
+  { name:'Марс',                desc:'Импульс. Агрессия, кинетическая энергия, прорыв, конфликт, действие напролом, отсечение лишнего.' },
+  { name:'Юпитер',              desc:'Масштабирование. Расширение влияния, выход за рамки, глобальная стратегия, удача, покровительство.' },
+  { name:'Сатурн',              desc:'Брандмауэр. Жесткая структура, ограничение, дисциплина, кармический долг, время, проверка на прочность.' },
+  { name:'Уран',                desc:'Системный сбой. Внезапный инсайт, разрушение старого порядка, хаос, революция, резкий разрыв шаблона.' },
+  { name:'Нептун',              desc:'Искажение. Туман, иллюзии, скрытые процессы, потеря фокуса, неясность, растворение границ.' },
+  { name:'Плутон',              desc:'Форматирование. Тотальная трансформация через кризис, разрушение до основания, власть, очистка.' },
+  { name:'Лилит / Чёрная Луна', desc:'Уязвимость. Системный баг, слепая зона, провокация, утечка энергии, искушение.' },
+  { name:'Кармические Узлы',    desc:'Вектор. Неизбежное столкновение: старый сценарий (от которого нужно отказаться) и новый путь (которого требует система).' },
+];
+
+const HOUSES = [
+  { name:'Дом I — Личность',        desc:'Ты сам, твоё физическое тело, личная инициатива, фасад, с которым ты выходишь в мир.' },
+  { name:'Дом II — Ресурсы',         desc:'Твои личные финансы, имущество, материальная база, запас физических сил.' },
+  { name:'Дом III — Ближний круг',   desc:'Повседневные коммуникации, короткие поездки, контакты, братья, соседи, базовое обучение.' },
+  { name:'Дом IV — Фундамент',       desc:'Семья, место жительства, корни, базовая безопасность, скрытая опора.' },
+  { name:'Дом V — Создание',         desc:'Творчество, страсть, риск, азарт, дети — в том числе проекты как дети.' },
+  { name:'Дом VI — Рутина',          desc:'Повседневные обязанности, наёмный труд, быт, здоровье, обслуживание системы.' },
+  { name:'Дом VII — Партнёрство',    desc:'Другие люди 1 на 1. Романтические партнёры, деловые союзы, открытые враги и конкуренты.' },
+  { name:'Дом VIII — Кризис',        desc:'Деньги других людей (банки, налоги, долги), экстремальные ситуации, стресс, глубокая трансформация.' },
+  { name:'Дом IX — Горизонты',       desc:'Дальние цели, высшие знания, мировоззрение, дальние путешествия, инстанции, выход за локальные рамки.' },
+  { name:'Дом X — Статус',           desc:'Высшая точка достижений, карьера, начальники, власть, официальная структура подчинения.' },
+  { name:'Дом XI — Единомышленники', desc:'Сообщества, группы людей, объединённых одной идеей, друзья, надежды и планы на будущее.' },
+  { name:'Дом XII — Изоляция',       desc:'Скрытые процессы, тайны, уход в себя, скрытые враги и слепые зоны.' },
+];
+
+const SPHERE_ANSWERS = [
+  { range:[10,14], text:'Точно нет',       color:'#cc2200', glow:'rgba(200,30,0,.5)'    },
+  { range:[15,20], text:'Скорее нет',      color:'#884400', glow:'rgba(130,60,0,.4)'    },
+  { range:[21,25], text:'Маловероятно',    color:'#665500', glow:'rgba(100,80,0,.4)'    },
+  { range:[26,29], text:'Туман. Спроси иначе', color:'var(--textd)', glow:'rgba(100,100,100,.3)' },
+  { range:[30,31], text:'Неясно',          color:'var(--accent2)', glow:'rgba(150,150,0,.3)' },
+  { range:[32,35], text:'Возможно',        color:'#558800', glow:'rgba(80,130,0,.4)'    },
+  { range:[36,40], text:'Скорее да',       color:'#228844', glow:'rgba(30,130,60,.4)'   },
+  { range:[41,45], text:'Вероятно да',     color:'#00aa44', glow:'rgba(0,160,60,.5)'    },
+  { range:[46,50], text:'Точно да',        color:'#00dd66', glow:'rgba(0,200,80,.6)'    },
+];
+
+let activeDie = 6;
+let activeMiniGame = null;
+
+function renderMinigames() {
+  if (activeMiniGame) { _renderActiveMiniGame(); return; }
+  document.getElementById('minigames-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:380px">
+      <div class="mg-card" onclick="openMiniGame('dice')">
+        <div class="mg-card-icon">💎</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Самоцветы</div>
+          <div class="mg-card-desc">Бросок костей · d2 до d100</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      <div class="mg-card" onclick="openMiniGame('bones')">
+        <div class="mg-card-icon">🪐</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Кости судьбы</div>
+          <div class="mg-card-desc">Астрологический оракул · планеты и дома</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      <div class="mg-card" onclick="openMiniGame('sphere')">
+        <div class="mg-card-icon">🔮</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Сфера судьбы</div>
+          <div class="mg-card-desc">Задай вопрос — получи ответ</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+    </div>`;
+}
+
+function openMiniGame(name) { activeMiniGame = name; _renderActiveMiniGame(); }
+function closeMiniGame() { activeMiniGame = null; renderMinigames(); }
+
+function _renderActiveMiniGame() {
+  const back = `<button class="btn sm" onclick="closeMiniGame()" style="margin-bottom:10px">← Назад</button>`;
+  let body = '';
+  if (activeMiniGame === 'dice')   body = renderDiceSection();
+  if (activeMiniGame === 'bones')  body = renderBonesSection();
+  if (activeMiniGame === 'sphere') body = renderSphereSection();
+  document.getElementById('minigames-content').innerHTML = back + body;
+}
+
+function renderDiceSection() {
+  return `<div class="profile-section dice-section">
+    <div class="profile-section-title">💎 САМОЦВЕТЫ — БРОСОК КОСТЕЙ</div>
+    <div class="dice-types" id="dice-types">
+      ${DICE_TYPES.map(d=>`
+        <div class="die-btn${d.sides===activeDie?' active':''}" onclick="selectDie(${d.sides})" title="${d.label}">
+          <div class="die-shape">${d.shape}</div>
+          <div class="die-label">${d.label}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="color:var(--textd);font-size:10px">Количество:</span>
+      <input id="dice-count" type="number" min="1" max="20" value="1"
+        style="width:50px;font-size:10px;padding:2px 4px">
+      <button class="btn primary" onclick="rollDice()">⟡ Бросить</button>
+      <button class="btn sm" onclick="clearDice()">✕</button>
+    </div>
+    <div class="dice-table" id="dice-table">
+      <div class="dice-table-empty" id="dice-empty">Здесь упадут кубики...</div>
+    </div>
+    <div id="dice-sum" class="dice-sum"></div>
+  </div>`;
+}
+
+function selectDie(sides) {
+  activeDie = sides;
+  document.querySelectorAll('.die-btn').forEach((btn,i)=>{
+    btn.classList.toggle('active', DICE_TYPES[i].sides === sides);
+  });
+}
+
+function rollDice() {
+  const count = Math.min(20, Math.max(1, parseInt(document.getElementById('dice-count').value)||1));
+  const table = document.getElementById('dice-table');
+  const empty = document.getElementById('dice-empty');
+  const sumEl = document.getElementById('dice-sum');
+  if(!table) return;
+  if(empty) empty.style.display='none';
+
+  const dieType = DICE_TYPES.find(d=>d.sides===activeDie)||DICE_TYPES[1];
+  let total = 0;
+  const results = [];
+  for(let i=0;i<count;i++){
+    const val = Math.floor(Math.random()*activeDie)+1;
+    results.push(val); total += val;
+  }
+
+  results.forEach((val,i)=>{
+    setTimeout(()=>{
+      const isMax = val===activeDie, isMin = val===1;
+      const el=document.createElement('div');
+      el.className='die-result'+(isMax?' max':'')+(isMin?' min':'');
+      el.style.animationDelay = (i*0.08)+'s';
+      el.innerHTML=`<div class="die-result-num">${val}</div><div class="die-result-type">${dieType.shape}</div>`;
+      el.title=dieType.label;
+      table.appendChild(el);
+      if(sumEl) sumEl.textContent = `Сумма: ${total}  (${count}${dieType.label})`;
+    }, i*80);
+  });
+}
+
+function clearDice() {
+  const table=document.getElementById('dice-table');
+  const sumEl=document.getElementById('dice-sum');
+  if(table) table.innerHTML='<div class="dice-table-empty" id="dice-empty">Здесь упадут кубики...</div>';
+  if(sumEl) sumEl.textContent='';
+}
+
+// ===== КОСТИ СУДЬБЫ =====
+function renderBonesSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">🪐 КОСТИ СУДЬБЫ — АСТРОЛОГИЧЕСКИЙ ОРАКУЛ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:12px">Два куба d12. Первый — планета. Второй — астрологический дом.</div>
+    <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:80px">
+        <label style="color:var(--textd);font-size:9px;letter-spacing:1px">КУБ I — СИЛА</label>
+        <input type="number" id="bones-c1" min="1" max="12" value="1">
+      </div>
+      <div class="field" style="flex:1;min-width:80px">
+        <label style="color:var(--textd);font-size:9px;letter-spacing:1px">КУБ II — СФЕРА</label>
+        <input type="number" id="bones-c2" min="1" max="12" value="1">
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn sm" onclick="rollBones()">⟡ Бросить кубы</button>
+      <button class="btn primary" onclick="readBones()">★ Предсказать</button>
+    </div>
+    <div id="bones-output" class="bones-output">
+      <span style="color:var(--textd);font-style:italic">Брось кубы и узнай предсказание...</span>
+    </div>
+  </div>`;
+}
+
+function rollBones() {
+  const c1 = document.getElementById('bones-c1');
+  const c2 = document.getElementById('bones-c2');
+  if(!c1||!c2) return;
+  c1.value = Math.ceil(Math.random()*12);
+  c2.value = Math.ceil(Math.random()*12);
+}
+
+function readBones() {
+  const c1 = parseInt(document.getElementById('bones-c1').value);
+  const c2 = parseInt(document.getElementById('bones-c2').value);
+  const out = document.getElementById('bones-output');
+  if(!out) return;
+  if(isNaN(c1)||isNaN(c2)||c1<1||c1>12||c2<1||c2>12){
+    out.innerHTML='<span style="color:var(--adminc)">⚠ Значения должны быть от 1 до 12.</span>'; return;
+  }
+  const p = PLANETS[c1-1];
+  const h = HOUSES[c2-1];
+  out.innerHTML = `
+    <div class="bones-block">
+      <div class="bones-label">ПЛАНЕТА</div>
+      <div class="bones-name">${p.name}</div>
+      <div class="bones-desc">${p.desc}</div>
+    </div>
+    <div class="bones-block" style="margin-top:10px">
+      <div class="bones-label">АСТРАЛЬНЫЙ ДОМ</div>
+      <div class="bones-name">${h.name}</div>
+      <div class="bones-desc">${h.desc}</div>
+    </div>`;
+}
+
+// ===== СФЕРА СУДЬБЫ =====
+function renderSphereSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">🔮 СФЕРА СУДЬБЫ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:14px">Сосредоточься на вопросе. Задай его сфере.</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+      <div class="sphere-orb" id="sphere-orb">
+        <div class="sphere-inner" id="sphere-inner">?</div>
+      </div>
+      <button class="btn primary" onclick="rollSphere()" style="padding:5px 24px;letter-spacing:1px">
+        ⊷ Задать вопрос
+      </button>
+      <div id="sphere-answer" class="sphere-answer"></div>
+    </div>
+  </div>`;
+}
+
+function rollSphere() {
+  let total = 0;
+  for(let i=0;i<10;i++) total += Math.floor(Math.random()*5)+1;
+
+  const entry = SPHERE_ANSWERS.find(a => total >= a.range[0] && total <= a.range[1])
+              || SPHERE_ANSWERS[4];
+
+  const orb = document.getElementById('sphere-orb');
+  const inner = document.getElementById('sphere-inner');
+  const answerEl = document.getElementById('sphere-answer');
+  if(!orb||!inner||!answerEl) return;
+
+  orb.classList.add('sphere-rolling');
+  inner.textContent = '...';
+  inner.style.color = 'var(--textd)';
+  answerEl.style.opacity = '0';
+
+  setTimeout(()=>{
+    orb.classList.remove('sphere-rolling');
+    inner.textContent = entry.text;
+    inner.style.color = entry.color;
+    inner.style.textShadow = `0 0 12px ${entry.glow}`;
+    orb.style.boxShadow = `0 0 30px ${entry.glow}, inset 0 0 20px rgba(0,0,0,.6)`;
+    answerEl.innerHTML = `<span style="color:${entry.color};font-size:13px;font-weight:bold;text-shadow:0 0 8px ${entry.glow}">${entry.text}</span>`;
+    answerEl.style.opacity = '1';
+  }, 900);
+}
+
 // ===== UTILS =====
 function uid() { return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
 
@@ -1096,7 +1432,7 @@ function renderComments(postId, ctx) {
       <div class="comment-avatar">${au.avatar||'?'}</div>
       <div style="flex:1">
         <div class="comment-meta"><span class="comment-author" onclick="openUserPage('${c.author}')">${c.author}</span> · ${timeAgo(c.ts)}</div>
-        <div class="comment-body" style="word-break:break-word;">${c.body}</div>
+        <div class="comment-body" style="word-break:break-word;">${escapeHtml(c.body)}</div>
         <div class="cmt-actions">
           <button class="act sm${myRes?' liked':''}" onclick="reactComment('${postId}','${c.id}','resonance')" title="Резонанс">⟡ ${(c.resonance||[]).length}</button>
           <button class="act sm${myCurse?' disliked':''}" onclick="reactComment('${postId}','${c.id}','curse')" title="Проклятие">☠ ${(c.curses||[]).length}</button>
