@@ -564,3 +564,201 @@ body.theme-light .post.admin-aura { background: rgba(255,255,255,0.7); }
   border-color: var(--accent);
   box-shadow: 0 0 10px rgba(255,100,0,0.2);
 }
+
+/* ===== ТЕМА: ДРУИДСКАЯ РОЩА ===== */
+body.theme-druid {
+  --bg:       #030a03;
+  --panel:    #040c04;
+  --win:      #050f05;
+  --border:   #1a3a1a;
+  --borderg:  #2a5a2a;
+  --text:     #80be80;
+  --textd:    #2a5a2a;
+  --accent:   #44cc44;
+  --accent2:  #88ee88;
+  --adminc:   #cc8800;
+  --resonc:   #00cc88;
+  --cursec:   #884400;
+  --link:     #55dd55;
+  --linkv:    #337733;
+  --titlebar: linear-gradient(180deg,#0d2a0d,#050f05);
+  --sel-bg:   #0a2a0a;
+  --sel-fg:   #44dd44;
+  --spark:    #44cc44;
+  --btn:      #080f08;
+  --btnhi:    #0f1f0f;
+  --input:    #030a03;
+  --tab-bg:   #030a03;
+}
+body.theme-druid #site-header { background:linear-gradient(180deg,#020802,#050f05); }
+body.theme-druid #site-header::before { background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(68,204,68,.06),transparent); }
+body.theme-druid .site-name { color:var(--accent); text-shadow:0 0 12px var(--accent),0 0 30px rgba(68,204,68,.3),2px 2px 0 #000; }
+body.theme-druid .win { box-shadow:inset 1px 1px 0 rgba(100,255,100,.04),0 0 18px rgba(50,150,50,.08),0 4px 20px rgba(0,0,0,.7); }
+body.theme-druid .win-title-txt { color:#aaffaa; text-shadow:1px 1px 0 #000,0 0 8px rgba(50,200,50,.4); }
+body.theme-druid #taskbar { background:linear-gradient(180deg,#050f05,#030a03); }
+body.theme-druid .tb-start { background:linear-gradient(180deg,#1a4a1a,#0a2a0a); border-color:#2a5a2a; color:#88ee88; }
+body.theme-druid .btn.primary { background:#0a2a0a; border-color:#2a5a2a; }
+body.theme-druid .btn.primary:hover { background:#0f3a0f; border-color:var(--accent); }
+
+/* ===== ТЕМА: БИОЛЮМИНЕСЦЕНЦИЯ ===== */
+body.theme-bio {
+  --bg:       #000408;
+  --panel:    #00050c;
+  --win:      #00060e;
+  --border:   #002244;
+  --borderg:  #003a6a;
+  --text:     #55bbff;
+  --textd:    #003a6a;
+  --accent:   #0099ff;
+  --accent2:  #44ddff;
+  --adminc:   #ff4400;
+  --resonc:   #00ffcc;
+  --cursec:   #ff0055;
+  --link:     #44aaff;
+  --linkv:    #2277cc;
+  --titlebar: linear-gradient(180deg,#001030,#000610);
+  --sel-bg:   #001a44;
+  --sel-fg:   #44ddff;
+  --spark:    #0099ff;
+  --btn:      #000a1e;
+  --btnhi:    #001028;
+  --input:    #000408;
+  --tab-bg:   #000408;
+}
+body.theme-bio #site-header { background:linear-gradient(180deg,#000208,#00060e); }
+body.theme-bio #site-header::before { background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(0,150,255,.06),transparent); }
+body.theme-bio .site-name { color:var(--accent2); text-shadow:0 0 12px var(--accent),0 0 30px rgba(0,150,255,.4),2px 2px 0 #000; }
+body.theme-bio .win { box-shadow:inset 1px 1px 0 rgba(0,150,255,.04),0 0 18px rgba(0,100,200,.1),0 4px 20px rgba(0,0,0,.8); }
+body.theme-bio .win-title-txt { color:#88ddff; text-shadow:1px 1px 0 #000,0 0 8px rgba(0,150,255,.5); }
+body.theme-bio .post:hover { background:rgba(0,150,255,.03); }
+body.theme-bio #taskbar { background:linear-gradient(180deg,#001020,#000408); }
+body.theme-bio .tb-start { background:linear-gradient(180deg,#001a44,#000a2a); border-color:#003a6a; color:#44ddff; }
+body.theme-bio .btn.primary { background:#001028; border-color:#003a6a; }
+body.theme-bio .btn.primary:hover { background:#001a3a; border-color:var(--accent); }
+
+/* ===== ТЕМА: СВЕТЛЯЧКОВАЯ ДОЛИНА ===== */
+body.theme-firefly {
+  --bg:       #020300;
+  --panel:    #030400;
+  --win:      #050600;
+  --border:   #1c1c00;
+  --borderg:  #2e2e00;
+  --text:     #bcc855;
+  --textd:    #3a4210;
+  --accent:   #aacc00;
+  --accent2:  #ccee44;
+  --adminc:   #ff8800;
+  --resonc:   #88cc00;
+  --cursec:   #886600;
+  --link:     #aadd00;
+  --linkv:    #667700;
+  --titlebar: linear-gradient(180deg,#1a2000,#080a00);
+  --sel-bg:   #1c1c00;
+  --sel-fg:   #ccee44;
+  --spark:    #aacc00;
+  --btn:      #0c0e00;
+  --btnhi:    #181a00;
+  --input:    #020300;
+  --tab-bg:   #020300;
+}
+body.theme-firefly #site-header { background:linear-gradient(180deg,#020300,#050600); }
+body.theme-firefly #site-header::before { background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(170,200,0,.06),transparent); }
+body.theme-firefly .site-name { color:var(--accent2); text-shadow:0 0 12px var(--accent),0 0 30px rgba(170,200,0,.3),2px 2px 0 #000; animation:fireflySiteName 3s ease-in-out infinite; }
+@keyframes fireflySiteName { 0%,100%{text-shadow:0 0 12px #aacc00,0 0 30px rgba(170,200,0,.3),2px 2px 0 #000} 50%{text-shadow:0 0 20px #ccee44,0 0 50px rgba(200,220,0,.5),2px 2px 0 #000} }
+body.theme-firefly .win { box-shadow:inset 1px 1px 0 rgba(200,220,0,.04),0 0 18px rgba(150,180,0,.07),0 4px 20px rgba(0,0,0,.7); }
+body.theme-firefly .win-title-txt { color:#ddee88; text-shadow:1px 1px 0 #000,0 0 8px rgba(180,200,0,.4); }
+body.theme-firefly #taskbar { background:linear-gradient(180deg,#0c0e00,#020300); }
+body.theme-firefly .tb-start { background:linear-gradient(180deg,#2a2a00,#141400); border-color:#2e2e00; color:#ccee44; }
+body.theme-firefly .btn.primary { background:#181a00; border-color:#2e2e00; }
+body.theme-firefly .btn.primary:hover { background:#222500; border-color:var(--accent); }
+
+/* ===== САМОЦВЕТЫ (DICE) ===== */
+.dice-section { margin-top:16px; }
+.dice-types { display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
+.die-btn {
+  width:38px; height:38px; border:2px solid var(--border);
+  background:var(--btn); color:var(--textd); font-size:10px; font-weight:bold;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  transition:all .15s; position:relative;
+}
+.die-btn:hover { border-color:var(--borderg); color:var(--text); background:var(--btnhi); }
+.die-btn.active { border-color:var(--accent); color:var(--accent); box-shadow:0 0 8px var(--accent)44; }
+.die-btn .die-shape { font-size:18px; line-height:1; }
+.die-btn .die-label { font-size:8px; margin-top:1px; }
+.dice-table {
+  min-height:120px; background:var(--panel); border:1px solid var(--border);
+  padding:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;
+  margin-top:8px; position:relative; overflow:hidden;
+}
+.dice-table-empty { color:var(--textd); font-size:10px; font-style:italic; }
+.die-result {
+  width:44px; height:44px; border:2px solid var(--borderg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:var(--win); position:relative; flex-shrink:0;
+  animation:dieRoll .5s ease-out both;
+}
+@keyframes dieRoll {
+  0%   { transform:translateY(-60px) rotate(180deg); opacity:0; }
+  70%  { transform:translateY(4px) rotate(-10deg); opacity:1; }
+  100% { transform:translateY(0) rotate(0deg); opacity:1; }
+}
+.die-result-num { font-size:16px; font-weight:bold; color:var(--accent2); line-height:1; }
+.die-result-type { font-size:8px; color:var(--textd); }
+.die-result.max { border-color:var(--accent); box-shadow:0 0 8px var(--accent); }
+.die-result.min { border-color:#440000; }
+.dice-sum { margin-top:8px; font-size:11px; color:var(--accent2); font-weight:bold; }
+
+/* ===== МИНИ-ИГРЫ: МЕНЮ ===== */
+.mg-card {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border:1px solid var(--border); background:var(--win);
+  cursor:pointer; transition:all .15s;
+}
+.mg-card:hover { border-color:var(--borderg); background:var(--btnhi); }
+.mg-card-icon { font-size:22px; flex-shrink:0; }
+.mg-card-info { flex:1; }
+.mg-card-name { font-weight:bold; color:var(--accent2); font-size:11px; margin-bottom:2px; }
+.mg-card-desc { color:var(--textd); font-size:9px; }
+.mg-card-arr { color:var(--borderg); font-size:12px; flex-shrink:0; }
+.mg-card:hover .mg-card-arr { color:var(--accent); }
+
+/* ===== КОСТИ СУДЬБЫ ===== */
+.bones-output {
+  padding:10px; border:1px solid var(--border); background:var(--panel);
+  min-height:60px; font-size:10px; line-height:1.6;
+}
+.bones-block { }
+.bones-label { font-size:8px; color:var(--textd); letter-spacing:2px; margin-bottom:2px; }
+.bones-name { font-weight:bold; color:var(--accent2); font-size:12px; margin-bottom:4px; }
+.bones-desc { color:var(--text); font-size:10px; line-height:1.6; }
+
+/* ===== СФЕРА СУДЬБЫ ===== */
+.sphere-orb {
+  width:140px; height:140px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #2a1a3a, #080010);
+  border:2px solid var(--border);
+  box-shadow:0 0 20px rgba(150,0,255,.15), inset 0 0 20px rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center;
+  transition:box-shadow .5s;
+}
+body.theme-light .sphere-orb, body.theme-xp .sphere-orb {
+  background:radial-gradient(circle at 35% 35%, #e8eef8, #c0cce0);
+  box-shadow:0 0 20px rgba(0,80,200,.12), inset 0 0 20px rgba(255,255,255,.4);
+}
+.sphere-inner {
+  font-size:13px; font-weight:bold; text-align:center;
+  color:var(--textd); padding:10px; line-height:1.4;
+  transition:color .4s, text-shadow .4s;
+  max-width:110px;
+}
+.sphere-rolling { animation:sphereSpin .9s ease-in-out; }
+@keyframes sphereSpin {
+  0%   { transform:scale(1); }
+  30%  { transform:scale(0.92); }
+  60%  { transform:scale(1.05); }
+  100% { transform:scale(1); }
+}
+.sphere-answer {
+  font-size:11px; text-align:center; min-height:20px;
+  transition:opacity .4s; letter-spacing:1px;
+}
