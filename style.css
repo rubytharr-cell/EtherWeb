@@ -762,3 +762,93 @@ body.theme-light .sphere-orb, body.theme-xp .sphere-orb {
   font-size:11px; text-align:center; min-height:20px;
   transition:opacity .4s; letter-spacing:1px;
 }
+
+/* ===== @УПОМИНАНИЯ ===== */
+.mention { color:var(--accent2); font-weight:bold; cursor:pointer; }
+.mention:hover { text-decoration:underline; }
+.mention-dropdown {
+  position:absolute; background:var(--win); border:1px solid var(--borderg);
+  z-index:200; display:none; max-height:140px; overflow-y:auto;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+}
+.mention-item {
+  padding:4px 8px; font-size:10px; color:var(--text); cursor:pointer;
+  display:flex; align-items:center; gap:6px;
+}
+.mention-item:hover { background:var(--btnhi); color:var(--accent); }
+
+/* ===== ПОИСК ПОСТОВ ===== */
+.search-feed-row { display:flex; gap:6px; padding:6px 8px; border-bottom:1px solid var(--border); }
+
+/* ===== ЛИДЕРБОРД ===== */
+.lb-row { display:flex; align-items:center; gap:6px; padding:3px 0; border-bottom:1px dashed var(--border); font-size:10px; }
+.lb-rank { color:var(--textd); font-size:9px; width:14px; text-align:right; flex-shrink:0; }
+.lb-name { flex:1; color:var(--accent2); cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.lb-name:hover { text-decoration:underline; }
+.lb-karma { color:var(--accent); font-weight:bold; font-size:10px; }
+.lb-row:nth-child(1) .lb-rank { color:#ffd700; }
+.lb-row:nth-child(2) .lb-rank { color:#c0c0c0; }
+.lb-row:nth-child(3) .lb-rank { color:#cd7f32; }
+
+/* ===== ТАРО ===== */
+.tarot-spread { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
+.tarot-card-wrap { perspective:600px; width:90px; cursor:pointer; }
+.tarot-card {
+  width:90px; height:140px; position:relative;
+  transform-style:preserve-3d; transition:transform .7s ease;
+  border-radius:3px;
+}
+.tarot-card.flipped { transform:rotateY(180deg); }
+.tarot-card.reversed .tarot-front { transform:rotateY(180deg) rotate(180deg); }
+.tarot-front, .tarot-back {
+  position:absolute; width:100%; height:100%;
+  backface-visibility:hidden; border-radius:3px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border:1px solid var(--borderg); padding:6px;
+}
+.tarot-back {
+  background:repeating-linear-gradient(45deg,#0a0015,#0a0015 4px,#100025 4px,#100025 8px);
+  border-color:#4a0088;
+}
+.tarot-back-sym { font-size:28px; color:#4a0088; text-shadow:0 0 8px #9900cc; }
+.tarot-front { transform:rotateY(180deg); flex-direction:column; justify-content:space-between; text-align:center; }
+.tarot-card.reversed .tarot-front { transform:rotateY(180deg) rotate(180deg); }
+.tarot-front-num { font-size:8px; color:var(--textd); letter-spacing:1px; }
+.tarot-front-sym { font-size:24px; line-height:1; margin:4px 0; }
+.tarot-front-name { font-size:9px; font-weight:bold; color:var(--accent2); line-height:1.2; }
+.tarot-front-suit { font-size:7px; color:var(--textd); margin-top:2px; }
+.tarot-desc {
+  margin-top:12px; padding:10px; border:1px solid var(--border);
+  background:var(--panel); font-size:10px; line-height:1.7; min-height:60px;
+  animation:fadeIn .4s ease;
+}
+.tarot-desc-rev { color:var(--cursec); font-style:italic; }
+.tarot-mode-btns { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+
+/* ===== РУНЫ ===== */
+.rune-spread { display:flex; gap:12px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+.rune-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.rune-tile {
+  width:70px; height:90px; border:1px solid var(--borderg);
+  background:var(--panel); display:flex; align-items:center; justify-content:center;
+  font-size:32px; position:relative; transition:all .3s;
+}
+.rune-tile.face-down { background:#0a0015; border-color:#330044; font-size:20px; color:#220033; }
+.rune-tile.revealed { animation:runeReveal .5s ease both; }
+.rune-tile.rune-reversed { transform:rotate(180deg); }
+@keyframes runeReveal {
+  0% { opacity:0; transform:scale(0.6) rotate(-20deg); }
+  60% { transform:scale(1.1) rotate(5deg); }
+  100% { opacity:1; transform:scale(1) rotate(0deg); }
+}
+.rune-tile.rune-reversed.revealed { animation:runeRevealRev .5s ease both; }
+@keyframes runeRevealRev {
+  0% { opacity:0; transform:scale(0.6) rotate(160deg); }
+  100% { opacity:1; transform:scale(1) rotate(180deg); }
+}
+.rune-name { font-size:9px; color:var(--accent2); font-weight:bold; letter-spacing:1px; text-align:center; }
+.rune-pos  { font-size:8px; color:var(--textd); text-align:center; }
+.rune-meanings { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+.rune-meaning-block { padding:8px; border:1px solid var(--border); background:var(--panel); font-size:10px; line-height:1.6; }
+.rune-meaning-title { font-weight:bold; color:var(--accent2); font-size:9px; letter-spacing:1px; margin-bottom:4px; }
+.rune-meaning-rev { color:var(--cursec); font-style:italic; }
