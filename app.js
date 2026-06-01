@@ -133,6 +133,7 @@ function load() {
         renderDialogs();
         if (curForumId) renderForumPosts(curForumId);
         if (curChatPartner) renderMessages();
+        // if (document.getElementById('page-world') && document.getElementById('page-world').classList.contains('active')) drawWorld();
       }
     }
     // Если документа нет (свежая база) — dbLoaded=true, разрешаем запись
@@ -277,6 +278,7 @@ function startApp() {
     document.getElementById('extranet-panel').style.display = 'block';
     document.getElementById('admin-html-insert').style.display = 'inline-block';
   }
+  setupMentionAutocomplete('compose-text');
 
   document.getElementById('prophecy-bar').textContent = makeProphecy();
   setSparkColor(ME.sparkColor||'#ff6600');
@@ -294,13 +296,16 @@ function showPage(p) {
   document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   const tabs = document.querySelectorAll('.nav-tab');
-  const map = {ether:0, broadcasts:1, chats:2, mypage:3, profile:4, minigames:5};
+  const map = {ether:0, subs:1, broadcasts:2, chats:3, mypage:4, profile:5, minigames:6, /*world:7*/};
   if(map[p]!==undefined) tabs[map[p]].classList.add('active');
   if(p==='chats') renderDialogs();
   if(p==='profile') renderProfilePage();
   if(p==='broadcasts') renderForums();
   if(p==='mypage') renderMyPage(ME);
   if(p==='minigames') renderMinigames();
+  if(p==='subs') renderSubsFeed();
+  // if(p==='world') renderWorld();
+  // else stopWorldAnim();
 }
 
 // ===== KARMA RING =====
@@ -336,7 +341,7 @@ function renderPost(p, ctx = 'feed') {
   const ring = karmaRing(author.karma||0);
   const forumRef = p.forumId ? `<div class="post-forum-ref">📡 <a onclick="openForum('${p.forumId}')">${getForumName(p.forumId)}</a></div>` : '';
   const rawBody = SUPER_ADMINS.includes(p.author) ? p.body : escapeHtml(p.body);
-  const body = rawBody.replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
+  const body = renderMentions(rawBody).replace(/\[spoiler\](.*?)\[\/spoiler\]/g,'<span class="spoiler" onclick="this.classList.toggle(\'open\')">$1</span>');
   const cmtSection = renderComments(p.id, ctx);
   const canDelete = p.author === ME.name || isAdmin();
   const reportCount = (p.reports||[]).length;
@@ -667,6 +672,7 @@ function renderSidebar() {
   else { document.getElementById('sb-myforums').innerHTML = mf.map(fid=>{ const f=DB.forums.find(x=>x.id===fid); return f?`<div class="sb-row"><a onclick="showPage('broadcasts');openForum('${f.id}')">${f.name}</a></div>`:''; }).join(''); }
   const hot = [...DB.posts].sort((a,b)=>(b.likes||[]).length-(a.likes||[]).length).slice(0,5);
   document.getElementById('sb-hot').innerHTML = hot.length ? hot.map(p=>`<div class="sb-row"><a>${escapeHtml(stripHtml(p.body)).substring(0,28)}...</a><span>${(p.likes||[]).length}⟡</span></div>`).join('') : '<div style="color:var(--textd);font-size:9px">Пока пусто</div>';
+  renderLeaderboard();
 }
 
 // ===== FORUMS =====
@@ -1031,10 +1037,12 @@ function renderColorPickers() {
 function pickSparkColor(val, el) {
   document.querySelectorAll('#spark-color-picker .color-opt').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected'); ME.sparkColor=val; setSparkColor(val);
+  playAstralSound();
 }
 function pickSelColor(bg,fg,el) {
   document.querySelectorAll('#sel-color-picker .color-opt').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected'); ME.selBg=bg; ME.selFg=fg; setSelColor(bg,fg);
+  playAstralSound();
 }
 
 function renderProfilePage() {
@@ -1051,6 +1059,7 @@ let profAvSelected = null;
 function selectProfAv(el) {
   document.querySelectorAll('#prof-avs .avatar-opt').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected'); profAvSelected=el.dataset.av;
+  playAstralSound();
 }
 
 function saveProfile() {
@@ -1060,13 +1069,330 @@ function saveProfile() {
     ME.name=newName; document.getElementById('nav-uname').textContent=newName; saveMe();
   }
   if(profAvSelected) ME.avatar=profAvSelected;
-  updateUser(ME); save(); renderFeed(); renderSidebar(); toast('Астральное тело обновлено.');
+  updateUser(ME); save(); renderFeed(); renderSidebar();
+  toast('Астральное тело обновлено.');
+  playAstralSound();
 }
 
 function setTheme(theme) {
   document.body.className = theme;
   if(ME) { ME.theme=theme; saveMe(); updateUser(ME); save(); }
+  playAstralSound();
 }
+
+// ===== ЗВУКИ АСТРАЛЬНОГО ТЕЛА =====
+const _abSounds = [
+  new Audio('sounds/astralbody1.wav'),
+  new Audio('sounds/astralbody2.wav'),
+  new Audio('sounds/astralbody3.wav'),
+];
+function playAstralSound() {
+  const s = _abSounds[Math.floor(Math.random() * _abSounds.length)];
+  s.currentTime = 0;
+  s.play().catch(()=>{});
+}
+
+// ===== ТАРО (78 КАРТ) =====
+const TAROT_CARDS = [
+  // СТАРШИЕ АРКАНЫ
+  {id:'0',  suit:'major', name:'Шут',             sym:'◌', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Начало пути, потенциал, безрассудная смелость. Прыжок в неизвестность без страха.',
+   rx:'Безрассудство без основания. Наивность, ведущая к провалу.'},
+  {id:'I',  suit:'major', name:'Маг',              sym:'☿', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Воля и мастерство. Все инструменты в руках — действуй прямо сейчас.',
+   rx:'Обман, манипуляция. Сила используется против тебя или тобой во вред.'},
+  {id:'II', suit:'major', name:'Верховная Жрица',  sym:'☽', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Тайное знание, интуиция, скрытые силы. Слушай тишину внутри.',
+   rx:'Скрытые повестки, поверхностность, игнорирование интуиции.'},
+  {id:'III',suit:'major', name:'Императрица',      sym:'♀', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Изобилие, творчество, плодородие. Природа создаёт — и ты создаёшь.',
+   rx:'Зависимость, творческий блок, избыток или нехватка заботы.'},
+  {id:'IV', suit:'major', name:'Император',        sym:'♂', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Власть, порядок, структура. Хаос можно и нужно контролировать.',
+   rx:'Тирания, жёсткость, неспособность делегировать. Слабость за маской силы.'},
+  {id:'V',  suit:'major', name:'Иерофант',         sym:'⊕', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Традиция, наставник, духовные системы. Путь через ритуал и принятые нормы.',
+   rx:'Догматизм, слепое следование правилам, коррупция в институтах.'},
+  {id:'VI', suit:'major', name:'Влюблённые',       sym:'⟡', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Выбор, союз, ценности. Сердце или разум — надо решать.',
+   rx:'Разлад, неверное решение, внутренний конфликт.'},
+  {id:'VII',suit:'major', name:'Колесница',        sym:'◈', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Победа через волю, движение вперёд. Ты управляешь хаосом.',
+   rx:'Потеря контроля, агрессия без цели, рассеянность.'},
+  {id:'VIII',suit:'major',name:'Сила',             sym:'∞', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Внутренняя мощь, терпение, укрощение собственного зверя.',
+   rx:'Неуверенность, подавленные эмоции, срыв.'},
+  {id:'IX', suit:'major', name:'Отшельник',        sym:'△', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Уединение, поиск истины, внутренний свет во тьме.',
+   rx:'Изоляция как бегство, отрицание помощи, одиночество без смысла.'},
+  {id:'X',  suit:'major', name:'Колесо Фортуны',  sym:'⊷', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Цикл судьбы, перемены, кармический поворот. Колесо крутится.',
+   rx:'Сопротивление переменам, невезение, застревание в цикле.'},
+  {id:'XI', suit:'major', name:'Справедливость',  sym:'⊗', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Баланс, истина, причина и следствие. Всё возвращается.',
+   rx:'Несправедливость, предвзятость, уклонение от ответственности.'},
+  {id:'XII',suit:'major', name:'Повешенный',       sym:'⊶', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Пауза, жертва ради знания. Смотри на мир с новой точки.',
+   rx:'Мартирство без смысла, затяжная неопределённость, отказ двигаться.'},
+  {id:'XIII',suit:'major',name:'Смерть',           sym:'☠', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Трансформация, конец цикла, необратимое изменение. Расчисти место.',
+   rx:'Стагнация, страх перемен, цепляние за то, что уже умерло.'},
+  {id:'XIV',suit:'major', name:'Умеренность',      sym:'≋', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Равновесие, терпение, синтез противоположностей. Поток, а не борьба.',
+   rx:'Дисбаланс, торопливость, крайности.'},
+  {id:'XV', suit:'major', name:'Дьявол',           sym:'⊘', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Зависимость, материальные цепи. Ты сам надел их — ты можешь снять.',
+   rx:'Освобождение от оков, но риск впасть в другую крайность.'},
+  {id:'XVI',suit:'major', name:'Башня',            sym:'✕', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Внезапный крах иллюзий. Разрушение необходимо для перерождения.',
+   rx:'Откладывание неизбежного. Крах всё равно придёт, но позже и больнее.'},
+  {id:'XVII',suit:'major',name:'Звезда',           sym:'✦', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Надежда, вдохновение, исцеление. Путеводный свет в темноте.',
+   rx:'Отчаяние, потеря веры, оторванность от реальности.'},
+  {id:'XVIII',suit:'major',name:'Луна',            sym:'◐', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Иллюзии, страхи, подсознание. Туман между мирами.',
+   rx:'Рассеивание иллюзий, но риск потерять интуицию вместе с ними.'},
+  {id:'XIX',suit:'major', name:'Солнце',           sym:'☉', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Радость, ясность, жизненная сила. Ты в центре — и это хорошо.',
+   rx:'Самонадеянность, детское мышление, уход от реальности в оптимизм.'},
+  {id:'XX', suit:'major', name:'Суд',              sym:'◉', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Пробуждение, призыв, переоценка. Ответь на зов — время пришло.',
+   rx:'Самобичевание, страх суда, неготовность к переменам.'},
+  {id:'XXI',suit:'major', name:'Мир',              sym:'⊶', col:'#1a0a2a', suitLabel:'Арканы',
+   up:'Завершение, интеграция. Цикл закрыт — и сразу открывается следующий.',
+   rx:'Незавершённость, нежелание признавать окончание.'},
+  // ЖЕЗЛЫ
+  {id:'w1', suit:'wands', name:'Туз Жезлов',       sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Творческий импульс, новый проект, искра вдохновения. Начинай.',
+   rx:'Задержки, блоки, нереализованный потенциал.'},
+  {id:'w2', suit:'wands', name:'2 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Планирование, выбор пути, мир в руках. Смотри вперёд.',
+   rx:'Страх перед будущим, нерешительность, застревание дома.'},
+  {id:'w3', suit:'wands', name:'3 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Расширение горизонтов, первые плоды. Результаты близко.',
+   rx:'Задержки, препятствия, разочарование от ожидания.'},
+  {id:'w4', suit:'wands', name:'4 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Торжество, стабильность, дом и сообщество. Отпразднуй.',
+   rx:'Нестабильность в фундаменте, откладывание празднования.'},
+  {id:'w5', suit:'wands', name:'5 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Конкуренция, хаотичная энергия, споры. Борьба закаляет.',
+   rx:'Избегание конфликта в ущерб себе, скрытая агрессия.'},
+  {id:'w6', suit:'wands', name:'6 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Победа, признание, триумф. Ты заслужил это.',
+   rx:'Провал на виду у всех, самонадеянность перед победой.'},
+  {id:'w7', suit:'wands', name:'7 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Защита позиции, стойкость под давлением. Держись.',
+   rx:'Сдача позиций, паранойя, ощущение что все против тебя.'},
+  {id:'w8', suit:'wands', name:'8 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Быстрые события, ускорение, действие без промедления.',
+   rx:'Хаос, слишком много сразу, упущенные послания.'},
+  {id:'w9', suit:'wands', name:'9 Жезлов',         sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Стойкость после испытаний. Ты почти дошёл — последний рубеж.',
+   rx:'Параноя, нежелание доверять, хроническая усталость.'},
+  {id:'w10',suit:'wands', name:'10 Жезлов',        sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Бремя ответственности. Ты несёшь многое — но финиш близко.',
+   rx:'Перегрузка, неумение делегировать, самопожертвование в ущерб себе.'},
+  {id:'wp', suit:'wands', name:'Паж Жезлов',       sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Энтузиазм, любопытство, начинающий путь огня.',
+   rx:'Поспешность, отсутствие плана, бесконечный старт без продолжения.'},
+  {id:'wk1',suit:'wands', name:'Рыцарь Жезлов',    sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Страстное движение, авантюризм, стремительность. Вперёд!',
+   rx:'Безрассудство, агрессия, непостоянство.'},
+  {id:'wq', suit:'wands', name:'Королева Жезлов',  sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Харизма, уверенность, творческая сила. Притягивает к себе всё.',
+   rx:'Ревность, эгоцентризм, манипуляция вниманием.'},
+  {id:'wki',suit:'wands', name:'Король Жезлов',    sym:'△', col:'#200800', suitLabel:'Жезлы',
+   up:'Лидерство, вдохновение, мастер своего дела. Строй империю.',
+   rx:'Тирания, высокомерие, неспособность слушать.'},
+  // КУБКИ
+  {id:'c1', suit:'cups',  name:'Туз Кубков',       sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Новое чувство, эмоциональное начало. Чаша полна — открой сердце.',
+   rx:'Эмоциональная закрытость, подавленные чувства, опустошение.'},
+  {id:'c2', suit:'cups',  name:'2 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Союз, взаимопонимание, гармония двух. Прекрасное начало.',
+   rx:'Разлад, дисбаланс, разрыв отношений.'},
+  {id:'c3', suit:'cups',  name:'3 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Дружба, праздник, изобилие. Время делиться радостью.',
+   rx:'Избыточное веселье, сплетни, предательство в компании.'},
+  {id:'c4', suit:'cups',  name:'4 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Апатия, скука. Ты не замечаешь протянутой руки.',
+   rx:'Выход из апатии, новое видение, принятие помощи.'},
+  {id:'c5', suit:'cups',  name:'5 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Утрата, скорбь. Но позади стоят два полных кубка — не всё потеряно.',
+   rx:'Принятие потери, движение вперёд, исцеление.'},
+  {id:'c6', suit:'cups',  name:'6 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Прошлое, воспоминания, невинность. Кто-то из прошлого возвращается.',
+   rx:'Застревание в прошлом, идеализация, нежелание взрослеть.'},
+  {id:'c7', suit:'cups',  name:'7 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Иллюзии, грёзы, слишком много вариантов. Выбери реальный.',
+   rx:'Ясность из тумана, возврат к реальности.'},
+  {id:'c8', suit:'cups',  name:'8 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Уход, отказ от старого ради поиска большего смысла.',
+   rx:'Страх уйти, застревание из страха перемен.'},
+  {id:'c9', suit:'cups',  name:'9 Кубков',         sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Исполнение желаний, удовлетворение. Карта мечтателя.',
+   rx:'Самодовольство, материализм, желания исполнены — но не те.'},
+  {id:'c10',suit:'cups',  name:'10 Кубков',        sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Счастье, гармония, полнота жизни. Радуга над домом.',
+   rx:'Семейные конфликты, разрыв, идеализация «счастливой семьи».'},
+  {id:'cp', suit:'cups',  name:'Паж Кубков',       sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Интуитивный вестник, чувствительность, творческое послание.',
+   rx:'Незрелые эмоции, иллюзии, уход в фантазии.'},
+  {id:'ck1',suit:'cups',  name:'Рыцарь Кубков',    sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Романтик, мечтатель, преследователь идеала.',
+   rx:'Капризность, разочарованность, бегство от реальности.'},
+  {id:'cq', suit:'cups',  name:'Королева Кубков',  sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Эмпатия, интуиция, эмоциональная мудрость. Она понимает без слов.',
+   rx:'Манипуляция через жалость, эмоциональная зависимость.'},
+  {id:'cki',suit:'cups',  name:'Король Кубков',    sym:'▽', col:'#001428', suitLabel:'Кубки',
+   up:'Эмоциональный баланс, мудрость сердца, дипломатия.',
+   rx:'Подавление чувств, холодность под маской мудрости.'},
+  // МЕЧИ
+  {id:'s1', suit:'swords',name:'Туз Мечей',        sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Ясность, истина, прорыв через иллюзии. Меч разрубает туман.',
+   rx:'Жестокость истины, деструктивная ясность, слова как оружие.'},
+  {id:'s2', suit:'swords',name:'2 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Тупик, избегание решения. Ты закрыл глаза — но выбор всё равно придётся сделать.',
+   rx:'Выход из тупика, снятие повязки, болезненное, но необходимое решение.'},
+  {id:'s3', suit:'swords',name:'3 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Боль, предательство, разбитое сердце. Прими — это освобождает.',
+   rx:'Зацикленность на боли, нежелание двигаться дальше.'},
+  {id:'s4', suit:'swords',name:'4 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Отдых после битвы, восстановление, медитация. Остановись.',
+   rx:'Тревожный покой, вынужденный отдых, нежелание возвращаться в игру.'},
+  {id:'s5', suit:'swords',name:'5 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Конфликт, пиррова победа. Ты победил — но какой ценой?',
+   rx:'Принятие поражения, уход с достоинством.'},
+  {id:'s6', suit:'swords',name:'6 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Переход, движение к спокойствию. Уходи от бури к тихой воде.',
+   rx:'Нежелание уходить, застревание в бурной ситуации.'},
+  {id:'s7', suit:'swords',name:'7 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Хитрость, стратегический уход. Иногда брать тихо — правильно.',
+   rx:'Обман раскрыт, нечестность возвращается бумерангом.'},
+  {id:'s8', suit:'swords',name:'8 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Ментальная ловушка. Ты сам сковал себя — и сам можешь освободиться.',
+   rx:'Освобождение от ограничений, прозрение.'},
+  {id:'s9', suit:'swords',name:'9 Мечей',          sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Тревога, ночные кошмары, кризис разума. Страхи больше, чем реальность.',
+   rx:'Выход из тревожного состояния, обращение за помощью.'},
+  {id:'s10',suit:'swords',name:'10 Мечей',         sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Окончательный конец, полный крах. Но рассвет уже начинается.',
+   rx:'Выживание, неожиданное спасение, отказ от жертвенности.'},
+  {id:'sp', suit:'swords',name:'Паж Мечей',        sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Острый ум, наблюдательность, жажда знаний.',
+   rx:'Сплетни, поверхностность, слова без действий.'},
+  {id:'sk1',suit:'swords',name:'Рыцарь Мечей',     sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Стремительный интеллект, прямолинейность. Натиск без остановок.',
+   rx:'Импульсивность, жестокость, действие без обдумывания.'},
+  {id:'sq', suit:'swords',name:'Королева Мечей',   sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Острый ум, независимость, честность без прикрас.',
+   rx:'Холодность, жестокость, изоляция за стеной интеллекта.'},
+  {id:'ski',suit:'swords',name:'Король Мечей',     sym:'◇', col:'#0f0f18', suitLabel:'Мечи',
+   up:'Интеллектуальная власть, авторитет, ментальная сила.',
+   rx:'Манипуляция интеллектом, холодный расчёт без сочувствия.'},
+  // ПЕНТАКЛИ
+  {id:'p1', suit:'pents', name:'Туз Пентаклей',    sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Материальное начало, семя процветания, новая возможность.',
+   rx:'Упущенный шанс, материализм без цели.'},
+  {id:'p2', suit:'pents', name:'2 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Жонглирование ресурсами, адаптация. Равновесие в движении.',
+   rx:'Перегрузка, потеря баланса, финансовый хаос.'},
+  {id:'p3', suit:'pents', name:'3 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Мастерство, командная работа, признание таланта.',
+   rx:'Плохая командная работа, посредственность, отсутствие признания.'},
+  {id:'p4', suit:'pents', name:'4 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Контроль над ресурсами, стабильность. Держи, что имеешь.',
+   rx:'Скупость, страх потери, удушение из-за чрезмерного контроля.'},
+  {id:'p5', suit:'pents', name:'5 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Нужда, изоляция. Помощь рядом — ты просто не смотришь.',
+   rx:'Выход из нужды, принятие помощи, выживание.'},
+  {id:'p6', suit:'pents', name:'6 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Щедрость, баланс «давать и брать». Делись — это возвращается.',
+   rx:'Долги, зависимость от чужой щедрости, неравный обмен.'},
+  {id:'p7', suit:'pents', name:'7 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Оценка результатов, терпение. Урожай ещё не готов — подожди.',
+   rx:'Нетерпение, неудовлетворённость, напрасный труд.'},
+  {id:'p8', suit:'pents', name:'8 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Мастерство через практику, труд, совершенствование. Делай снова и снова.',
+   rx:'Трудоголизм без смысла, рутина ради рутины.'},
+  {id:'p9', suit:'pents', name:'9 Пентаклей',      sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Самодостаточность, плоды труда, изобилие. Ты заслужил.',
+   rx:'Зависимость, одиночество в достатке, потеря нажитого.'},
+  {id:'p10',suit:'pents', name:'10 Пентаклей',     sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Наследие, стабильность поколений, долгосрочный успех.',
+   rx:'Семейные конфликты из-за денег, рухнувшее наследие.'},
+  {id:'pp', suit:'pents', name:'Паж Пентаклей',    sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Студент, практичные начинания, усердие. Учись на практике.',
+   rx:'Прокрастинация, мечтательность без действий.'},
+  {id:'pk1',suit:'pents', name:'Рыцарь Пентаклей', sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Методичность, надёжность. Медленно, но верно.',
+   rx:'Упрямство, скука, чрезмерная осторожность.'},
+  {id:'pq', suit:'pents', name:'Королева Пентаклей',sym:'◆',col:'#001408', suitLabel:'Пентакли',
+   up:'Заботливость, практичность, изобилие. Дом — крепость.',
+   rx:'Гиперопека, материализм вместо тепла.'},
+  {id:'pki',suit:'pents', name:'Король Пентаклей', sym:'◆', col:'#001408', suitLabel:'Пентакли',
+   up:'Мастер материи, предпринимательство, щедрость силы.',
+   rx:'Коррупция, власть ради власти, жадность.'},
+];
+
+// ===== СЛАВЯНСКИЕ РУНЫ (18) =====
+const SLAVIC_RUNES = [
+  {name:'Мир',      sym:'ᛗ', col:'#001a10',
+   up:'Гармония, порядок, защита, союз с миром богов и людей.',
+   rx:'Хаос, конфликт, разрушение установленного порядка.',
+   pos:['Прошлое','Настоящее','Путь']},
+  {name:'Чернобог', sym:'ᚦ', col:'#1a0000',
+   up:'Испытание, тёмная сила, разрушение старого ради нового.',
+   rx:'Слепая тьма, саморазрушение, отказ учиться на испытании.'},
+  {name:'Алатырь',  sym:'ᚨ', col:'#1a1000',
+   up:'Центр мира, равновесие, начало и конец всего. Ось бытия.',
+   rx:'Дисбаланс, потеря центра, блуждание без опоры.'},
+  {name:'Радуга',   sym:'ᚱ', col:'#001428',
+   up:'Связь между мирами, мост, дорога. Иди — путь открыт.',
+   rx:'Потеря пути, застревание между мирами, ложный выбор.'},
+  {name:'Нужда',    sym:'ᚾ', col:'#1a0a00',
+   up:'Ограничение, необходимость, кармический урок. Пройди — вырастешь.',
+   rx:'Рабство обстоятельствам, отказ учиться, цикл повторяется.'},
+  {name:'Крада',    sym:'ᚲ', col:'#200500',
+   up:'Очистительный огонь, жертва, трансформация через горение.',
+   rx:'Выгорание, жертва без смысла, всё сгорает зря.'},
+  {name:'Треба',    sym:'ᛏ', col:'#0a0a1a',
+   up:'Жертвоприношение, долг, исполнение обязательств богам и людям.',
+   rx:'Отказ от долга, нарушение клятвы, духовная пустота.'},
+  {name:'Сила',     sym:'ᛊ', col:'#0a1a00',
+   up:'Жизненная сила, воля, энергия духа. Ты сильнее чем думаешь.',
+   rx:'Слабость духа, утечка силы, чужая воля вместо своей.'},
+  {name:'Ветер',    sym:'ᚹ', col:'#00101a',
+   up:'Дух, движение, перемены, воля богов. Не сопротивляйся потоку.',
+   rx:'Застой, отрицание перемен, страх движения.'},
+  {name:'Берег',    sym:'ᛒ', col:'#001a08',
+   up:'Защита, безопасность, мать-земля, возвращение домой.',
+   rx:'Беззащитность, изгнание, потеря почвы под ногами.'},
+  {name:'Уд',       sym:'ᚢ', col:'#1a0800',
+   up:'Жизненная сила рода, страсть, творческое начало, потенция.',
+   rx:'Разрушение связи с родом, угасание силы, творческий кризис.'},
+  {name:'Леля',     sym:'ᛚ', col:'#001020',
+   up:'Любовь, интуиция, вода, весна, обновление. Сердце знает.',
+   rx:'Холодность, подавление чувств, потеря связи с интуицией.'},
+  {name:'Рок',      sym:'ᛞ', col:'#100010',
+   up:'Судьба, неизбежность, высший закон. Прими — и освободишься.',
+   rx:'Бегство от судьбы, борьба с неизбежным, кармический долг.'},
+  {name:'Опора',    sym:'ᚩ', col:'#0a0a00',
+   up:'Предки, традиция, корни, поддержка из прошлого.',
+   rx:'Одиночество, отрыв от корней, отрицание помощи предков.'},
+  {name:'Даждьбог', sym:'ᛞ', col:'#1a1000',
+   up:'Дарующий бог, изобилие, солнечный свет, щедрость.',
+   rx:'Жадность, удача закрыта, блокировка благодати.'},
+  {name:'Перун',    sym:'ᛈ', col:'#0a0a1a',
+   up:'Гром, справедливость, очищение. Перун судит — и он справедлив.',
+   rx:'Слепой гнев, несправедливое наказание, разрушение вместо защиты.'},
+  {name:'Исток',    sym:'ᛁ', col:'#001818',
+   up:'Начало, источник, первопричина всего сущего.',
+   rx:'Потеря смысла, разрыв с первопричиной, бессмысленное существование.'},
+  {name:'Есть',     sym:'ᛖ', col:'#0a1000',
+   up:'Бытие, существование, настоящий момент. Ты есть — и это сила.',
+   rx:'Отрицание существования, побег от настоящего, небытие как выбор.'},
+];
 
 // ===== ADMIN HTML SNIPPETS =====
 const ADMIN_SNIPPETS = {
@@ -1088,6 +1414,279 @@ const ADMIN_SNIPPETS = {
   'code':    ['<code>', '</code>'],
   'details': ['<details><summary>Раскрыть</summary>', '</details>'],
 };
+
+// ===== @УПОМИНАНИЯ =====
+function renderMentions(text) {
+  return text.replace(/@([\wа-яёА-ЯЁ_-]+)/g, (match, name) => {
+    const user = DB.users.find(u => u.name === name);
+    if (user) return `<span class="mention" onclick="openUserPage('${escapeHtml(name)}')">@${escapeHtml(name)}</span>`;
+    return match;
+  });
+}
+
+function setupMentionAutocomplete(taId) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  ta.addEventListener('input', () => {
+    const pos = ta.selectionStart;
+    const before = ta.value.substring(0, pos);
+    const atMatch = before.match(/@([\wа-яёА-ЯЁ_-]*)$/);
+    const dd = document.getElementById('mention-dropdown');
+    if (!atMatch) { dd.style.display = 'none'; return; }
+    const q = atMatch[1].toLowerCase();
+    const matches = DB.users.filter(u => u.name.toLowerCase().startsWith(q) && u.name !== ME.name).slice(0, 6);
+    if (!matches.length) { dd.style.display = 'none'; return; }
+    dd.style.display = 'block';
+    dd.innerHTML = matches.map(u =>
+      `<div class="mention-item" onmousedown="insertMention('${u.name}','${taId}')">${u.avatar||'?'} ${escapeHtml(u.name)}</div>`
+    ).join('');
+  });
+  ta.addEventListener('blur', () => setTimeout(()=>{ const dd=document.getElementById('mention-dropdown'); if(dd) dd.style.display='none'; }, 150));
+}
+
+function insertMention(name, taId) {
+  const ta = document.getElementById(taId) || document.getElementById('compose-text');
+  if (!ta) return;
+  const pos = ta.selectionStart;
+  const before = ta.value.substring(0, pos).replace(/@[\wа-яёА-ЯЁ_-]*$/, '@' + name + ' ');
+  ta.value = before + ta.value.substring(pos);
+  ta.selectionStart = ta.selectionEnd = before.length;
+  ta.focus();
+  const dd = document.getElementById('mention-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+// ===== ПОИСК ПОСТОВ =====
+function searchFeed() {
+  const q = (document.getElementById('feed-search')||{}).value.trim().toLowerCase();
+  const el = document.getElementById('feed-list');
+  const feed = [...DB.posts].reverse();
+  const filtered = q ? feed.filter(p =>
+    p.body.toLowerCase().includes(q) || p.author.toLowerCase().includes(q)
+  ) : feed;
+  if (!filtered.length) { el.innerHTML = '<div class="empty-state">Ничего не найдено.</div>'; return; }
+  el.innerHTML = filtered.map(p => renderPost(p, 'feed')).join('');
+  document.getElementById('feed-count').textContent = filtered.length + ' трансляций';
+}
+
+// ===== ЛЕНТА ПОДПИСОК =====
+function renderSubsFeed() {
+  const el = document.getElementById('subs-feed-list');
+  const subs = ME.subs || [];
+  if (!subs.length) { el.innerHTML = '<div class="empty-state">Нет подписок. Подпишитесь на кого-нибудь.</div>'; return; }
+  const posts = [...DB.posts].reverse().filter(p => subs.includes(p.author));
+  if (!posts.length) { el.innerHTML = '<div class="empty-state">Подписки молчат. Пока пусто.</div>'; return; }
+  el.innerHTML = posts.map(p => renderPost(p, 'subs')).join('');
+}
+
+// ===== ТАРО =====
+let tarotMode = 1; // 1 или 3 карты
+let drawnCards = [];
+
+function renderTarotSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">🃏 ТАРО — РАСКЛАД КАРТ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:10px">
+      Сосредоточься на вопросе. Карты отвечают.
+    </div>
+    <div class="tarot-mode-btns">
+      <button class="btn sm${tarotMode===1?' primary':''}" onclick="setTarotMode(1)">Одна карта</button>
+      <button class="btn sm${tarotMode===3?' primary':''}" onclick="setTarotMode(3)">Расклад 3 карты</button>
+    </div>
+    <button class="btn primary" onclick="drawTarot()" style="margin-bottom:8px">⟡ Вытянуть карту</button>
+    <div id="tarot-spread" class="tarot-spread"></div>
+    <div id="tarot-desc" class="tarot-desc" style="display:none"></div>
+  </div>`;
+}
+
+function setTarotMode(m) {
+  tarotMode = m;
+  _renderActiveMiniGame();
+}
+
+const SUIT_SYMS = { wands:'🜂', cups:'🜄', swords:'🜁', pents:'🜃' };
+
+// Карта Безумия — секретная 79я карта (не упоминается в UI)
+const CHAOS_CARD = {
+  id:'∅', suit:'chaos', name:'Карта Безумия', sym:'∅', col:'#000000', suitLabel:'?',
+  up:'Система перегружена. Правила недействительны. Этой карты не существует.',
+  rx:'Порядок возникает из абсолютного хаоса. Невозможное становится единственно верным.'
+};
+
+let flippedCards = new Set();
+
+function drawTarot() {
+  // С шансом ~5% одна карта заменяется на Карту Безумия
+  const deck = [...TAROT_CARDS];
+  drawnCards = [];
+  flippedCards = new Set();
+
+  for (let i = 0; i < tarotMode; i++) {
+    let card;
+    if (Math.random() < 0.05) {
+      card = {...CHAOS_CARD};
+    } else {
+      const idx = Math.floor(Math.random() * deck.length);
+      card = {...deck.splice(idx, 1)[0]};
+    }
+    card.reversed = Math.random() < 0.35;
+    drawnCards.push(card);
+  }
+
+  const labels = tarotMode === 3 ? ['Прошлое','Настоящее','Будущее'] : [''];
+  const spread = document.getElementById('tarot-spread');
+  const desc = document.getElementById('tarot-desc');
+  if (!spread) return;
+
+  spread.innerHTML = drawnCards.map((c, i) => {
+    const isChaos = c.suit === 'chaos';
+    const displaySym = SUIT_SYMS[c.suit] || c.sym;
+    const frontStyle = isChaos
+      ? `background:#000;border-color:#00ffff;box-shadow:0 0 15px #ff00ff,inset 0 0 10px rgba(0,255,255,.2);`
+      : `background:${c.col};`;
+    const symStyle = isChaos
+      ? `color:#00ffff;text-shadow:0 0 10px #ff00ff,0 0 20px #00ffff;animation:glitchText 1s infinite;font-size:26px;`
+      : '';
+    const nameStyle = isChaos ? `color:#00ffff;text-shadow:0 0 8px #ff00ff;` : '';
+    const numStyle  = isChaos ? `color:#ff00ff;` : '';
+    const revBadge  = '';
+
+    return `<div class="tarot-card-wrap" onclick="flipTarotCard(${i})">
+      <div class="tarot-card${c.reversed?' reversed':''}" id="tcard-${i}">
+        <div class="tarot-back" style="background:repeating-linear-gradient(45deg,#0a0015,#0a0015 4px,#100025 4px,#100025 8px)">
+          <div class="tarot-back-sym">✦</div>
+        </div>
+        <div class="tarot-front" style="${frontStyle}position:relative;">
+          <div class="tarot-front-num" style="${numStyle}">${c.id}</div>
+          ${revBadge}
+          <div class="tarot-front-sym" style="${symStyle}">${displaySym}</div>
+          <div class="tarot-front-name" style="${nameStyle}">${c.name}</div>
+          <div class="tarot-front-suit" style="${isChaos?'color:#ff00ff':''}">${c.suitLabel}${c.reversed?' · ⊗':''}</div>
+        </div>
+      </div>
+      ${labels[i] ? `<div style="font-size:8px;color:var(--textd);text-align:center;margin-top:4px">${labels[i]}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  if (desc) desc.style.display = 'none';
+}
+
+function flipTarotCard(i) {
+  if (drawnCards[i] === undefined) return;
+  const el = document.getElementById(`tcard-${i}`);
+  if (!el) return;
+  el.classList.toggle('flipped');
+  if (el.classList.contains('flipped')) flippedCards.add(i);
+  else flippedCards.delete(i);
+  renderTarotDescriptions();
+}
+
+function renderTarotDescriptions() {
+  const desc = document.getElementById('tarot-desc');
+  if (!desc) return;
+  if (flippedCards.size === 0) { desc.style.display = 'none'; return; }
+
+  const labels = tarotMode === 3 ? ['Прошлое','Настоящее','Будущее'] : [''];
+  const all = [...flippedCards].sort();
+  const total = all.length;
+
+  desc.style.display = 'block';
+  desc.innerHTML = all.map((i, idx) => {
+    const c = drawnCards[i];
+    const isChaos = c.suit === 'chaos';
+    const nameStyle = isChaos ? 'color:#00ffff;text-shadow:0 0 6px #ff00ff;' : 'color:var(--accent2);';
+    const label = labels[i] ? `<span style="color:var(--textd);font-size:8px;letter-spacing:2px">${labels[i]} · </span>` : '';
+    const revTag = c.reversed ? `<span style="color:var(--cursec);font-size:9px"> [перевёрнута]</span>` : '';
+    const meaning = c.reversed
+      ? `<span class="tarot-desc-rev">⊗ ${c.rx}</span>`
+      : `⟡ ${c.up}`;
+    const sep = idx < total-1 ? `border-bottom:1px dashed var(--border);margin-bottom:8px;padding-bottom:8px;` : '';
+    return `<div style="${sep}">
+      ${label}<b style="${nameStyle}">${c.name}</b>${revTag}<br>${meaning}
+    </div>`;
+  }).join('');
+}
+
+// ===== РУНЫ =====
+let thrownRunes = [];
+
+function renderRunesSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">ᚱ СЛАВЯНСКИЕ РУНЫ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:12px">
+      Задай вопрос. Три руны откроют прошлое, настоящее и путь.
+    </div>
+    <button class="btn primary" onclick="throwRunes()">ᚨ Бросить руны</button>
+    <div class="rune-spread" id="rune-spread" style="margin-top:14px"></div>
+    <div class="rune-meanings" id="rune-meanings"></div>
+  </div>`;
+}
+
+function throwRunes() {
+  const pool = [...SLAVIC_RUNES];
+  thrownRunes = [];
+  const positions = ['Прошлое','Настоящее','Путь'];
+  for (let i = 0; i < 3; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const rune = {...pool.splice(idx, 1)[0]};
+    rune.reversed = Math.random() < 0.4;
+    rune.position = positions[i];
+    thrownRunes.push(rune);
+  }
+  const spread = document.getElementById('rune-spread');
+  const meanings = document.getElementById('rune-meanings');
+  if (!spread) return;
+  spread.innerHTML = thrownRunes.map((r, i) => `
+    <div class="rune-wrap">
+      <div class="rune-tile face-down" id="rtile-${i}" style="background:${r.col};animation-delay:${i*0.3}s" onclick="revealRune(${i})">✦</div>
+      <div class="rune-name" id="rname-${i}" style="display:none">${r.name}</div>
+      <div class="rune-pos">${r.position}</div>
+    </div>`).join('');
+  if (meanings) meanings.innerHTML = '';
+  thrownRunes.forEach((_, i) => setTimeout(() => revealRune(i), 400 + i * 500));
+}
+
+function revealRune(i) {
+  const r = thrownRunes[i];
+  if (!r) return;
+  const tile = document.getElementById(`rtile-${i}`);
+  const nameEl = document.getElementById(`rname-${i}`);
+  if (!tile) return;
+  tile.textContent = r.sym;
+  tile.classList.remove('face-down');
+  tile.classList.add('revealed');
+  if (r.reversed) tile.classList.add('rune-reversed');
+  if (nameEl) nameEl.style.display = 'block';
+  const meanings = document.getElementById('rune-meanings');
+  if (!meanings) return;
+  const existing = document.getElementById(`rmean-${i}`);
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = `rmean-${i}`;
+  div.className = 'rune-meaning-block';
+  div.style.animationDelay = (i * 0.2) + 's';
+  div.innerHTML = `
+    <div class="rune-meaning-title">${r.position} · ${r.sym} ${r.name}${r.reversed ? ' [перевёрнутая]' : ''}</div>
+    ${r.reversed
+      ? `<span class="rune-meaning-rev">⊗ ${r.rx}</span>`
+      : `⟡ ${r.up}`}`;
+  meanings.appendChild(div);
+}
+
+// ===== ЛИДЕРБОРД =====
+function renderLeaderboard() {
+  const el = document.getElementById('sb-leaderboard');
+  if (!el) return;
+  const sorted = [...DB.users].sort((a,b) => (b.karma||0) - (a.karma||0)).slice(0, 10);
+  if (!sorted.length) { el.innerHTML = '<div style="color:var(--textd);font-size:9px">Нет данных</div>'; return; }
+  el.innerHTML = sorted.map((u, i) => `
+    <div class="lb-row">
+      <span class="lb-rank">${i+1}</span>
+      <span style="font-size:12px">${u.avatar||'?'}</span>
+      <span class="lb-name" onclick="openUserPage('${u.name}')">${escapeHtml(u.name)}</span>
+      <span class="lb-karma">${u.karma||0}</span>
+    </div>`).join('');
+}
 
 function insertAdminSnippet(sel) {
   const val = sel.value;
@@ -1191,6 +1790,22 @@ function renderMinigames() {
         </div>
         <div class="mg-card-arr">▶</div>
       </div>
+      <div class="mg-card" onclick="openMiniGame('tarot')">
+        <div class="mg-card-icon">🃏</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Таро</div>
+          <div class="mg-card-desc">78 карт · одна или три · прямая и перевёрнутая</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      <div class="mg-card" onclick="openMiniGame('runes')">
+        <div class="mg-card-icon">ᚱ</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Славянские руны</div>
+          <div class="mg-card-desc">18 рун · расклад трёх · прямая и перевёрнутая</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
     </div>`;
 }
 
@@ -1203,6 +1818,8 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'dice')   body = renderDiceSection();
   if (activeMiniGame === 'bones')  body = renderBonesSection();
   if (activeMiniGame === 'sphere') body = renderSphereSection();
+  if (activeMiniGame === 'tarot')  body = renderTarotSection();
+  if (activeMiniGame === 'runes')  body = renderRunesSection();
   document.getElementById('minigames-content').innerHTML = back + body;
 }
 
@@ -1374,6 +1991,245 @@ function rollSphere() {
     answerEl.style.opacity = '1';
   }, 900);
 }
+
+// ===== МИР (TILE-BASED MULTIPLAYER) =====
+// const TILE_SIZE = 12;
+// const MAP_W = 50, MAP_H = 50;
+// const CANVAS_W = TILE_SIZE * MAP_W;  // 600
+// const CANVAS_H = TILE_SIZE * MAP_H;  // 600
+
+// ---- Карта ----
+// const TILE_PAL = {
+//   water:  ['#0b2844','#0d3050','#0a263e'],
+//   shore:  ['#1a4015','#1e4a18','#163812'],
+//   grass:  ['#1c420e','#224d10','#183c0c'],
+//   grass2: ['#264510','#2c5013','#213e0e'],
+//   forest: ['#0e2a06','#112e08','#0b2505'],
+//   rock:   ['#2a2620','#302c22','#24201c'],
+// };
+
+// let worldMap      = null;   // [row][col] = tiletype string
+// let worldBgCanvas = null;   // pre-rendered background
+
+// ---- Спрайты ----
+// const WORLD_SPRITES   = {};
+// const SPRITE_FILES    = ['Hero-Mage','Hero-Knight','Hero-Ranger','Ghost'];
+// let   worldSpritesReady = false;
+
+// ---- Lerp (плавное движение) ----
+// name → {fx,fy, tx,ty, t, dir, moving}
+// let worldLerps = {};
+
+// ---- RAF ----
+// let worldRafId  = null;
+// let worldLastTs = 0;
+
+// ===================== СПРАЙТЫ =====================
+// async function loadWorldAssets() {
+//   if(worldSpritesReady) return;
+//   for(const name of SPRITE_FILES) {
+//     const s = await UGS.load(`assets/${name}.ugs`);
+//     if(s) WORLD_SPRITES[name] = s;
+//   }
+//   worldSpritesReady = true;
+// }
+// function getSpriteForUser(u) {
+//   const hash = [...u.name].reduce((a,c) => a+c.charCodeAt(0), 0);
+//   const avail = SPRITE_FILES.filter(n => WORLD_SPRITES[n]);
+//   if(!avail.length) return null;
+//   return WORLD_SPRITES[avail[hash % avail.length]];
+// }
+
+// ===================== ГЕНЕРАЦИЯ КАРТЫ =====================
+// function _wHash(x, y) {
+//   let h = (x*374761393 + y*668265263 + 2246822519) >>> 0;
+//   h = ((h ^ (h>>>13)) * 1274126177) >>> 0;
+//   return ((h ^ (h>>>16)) >>> 0) / 4294967296;
+// }
+// function _smooth(x, y, sc) {
+//   const fx=x/sc,fy=y/sc,ix=Math.floor(fx)|0,iy=Math.floor(fy)|0;
+//   const dx=fx-ix,dy=fy-iy,s=t=>3*t*t-2*t*t*t;
+//   const a=_wHash(ix,iy),b=_wHash(ix+1,iy),c=_wHash(ix,iy+1),d=_wHash(ix+1,iy+1);
+//   return a*(1-s(dx))*(1-s(dy))+b*s(dx)*(1-s(dy))+c*(1-s(dx))*s(dy)+d*s(dx)*s(dy);
+// }
+// function _tv(x,y){ return _smooth(x,y,10)*0.55+_smooth(x,y,4)*0.3+_smooth(x,y,2)*0.15; }
+// function _tileType(x,y){
+//   const n=_tv(x,y);
+//   if(n<0.22) return 'water';
+//   if(n<0.28) return 'shore';
+//   if(n<0.57) return 'grass';
+//   if(n<0.70) return 'grass2';
+//   if(n<0.84) return 'forest';
+//   return 'rock';
+// }
+// function initWorldMap(){
+//   if(worldMap) return;
+//   worldMap=[];
+//   for(let y=0;y<MAP_H;y++){ worldMap[y]=[]; for(let x=0;x<MAP_W;x++) worldMap[y][x]=_tileType(x,y); }
+// }
+// function buildWorldBg(){
+//   initWorldMap();
+//   const c=document.createElement('canvas'); c.width=CANVAS_W; c.height=CANVAS_H;
+//   const ctx=c.getContext('2d');
+//   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+//     const type=worldMap[y][x],pal=TILE_PAL[type]||TILE_PAL.grass;
+//     const hi=(x*3+y*7)%pal.length;
+//     const px=x*TILE_SIZE,py=y*TILE_SIZE;
+//     ctx.fillStyle=pal[hi]; ctx.fillRect(px,py,TILE_SIZE,TILE_SIZE);
+//     ctx.fillStyle='rgba(0,0,0,0.18)';
+//     ctx.fillRect(px+TILE_SIZE-1,py,1,TILE_SIZE);
+//     ctx.fillRect(px,py+TILE_SIZE-1,TILE_SIZE,1);
+//     if(type==='water'&&(x+y)%5===0){ctx.fillStyle='rgba(80,160,255,0.08)';ctx.fillRect(px+2,py+2,TILE_SIZE-4,2);}
+//     if((type==='grass'||type==='grass2')&&(x+y)%7===0){ctx.fillStyle='rgba(255,255,200,0.04)';ctx.fillRect(px+3,py+3,2,2);}
+//   }
+//   worldBgCanvas=c;
+// }
+
+// ===================== LERP-ДВИЖЕНИЕ =====================
+// function _easeIO(t){ return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+// function _dirFrom(dx,dy){
+//   if(Math.abs(dx)<0.5&&Math.abs(dy)<0.5) return 0;
+//   const a=Math.atan2(dy,dx)*180/Math.PI;
+//   if(a>112.5||a<-112.5) return 2;
+//   if(a>67.5)  return 1;
+//   if(a>22.5)  return 0;
+//   if(a>-22.5) return 6;
+//   if(a>-67.5) return 7;
+//   if(a>-112.5)return 4;
+//   return 0;
+// }
+// function _initLerp(u){
+//   const p=u.worldPos||{tileX:10,tileY:10};
+//   if(!worldLerps[u.name])
+//     worldLerps[u.name]={fx:p.tileX,fy:p.tileY,tx:p.tileX,ty:p.tileY,t:1,dir:0,moving:false};
+// }
+// function _startMove(name,toX,toY){
+//   const lr=worldLerps[name]; if(!lr) return;
+//   if(lr.tx===toX&&lr.ty===toY) return;
+//   const et=_easeIO(Math.min(1,lr.t));
+//   const vx=lr.fx+(lr.tx-lr.fx)*et, vy=lr.fy+(lr.ty-lr.fy)*et;
+//   lr.dir=_dirFrom(toX-vx,toY-vy);
+//   lr.fx=vx; lr.fy=vy; lr.tx=toX; lr.ty=toY; lr.t=0; lr.moving=true;
+// }
+
+// ===================== RENDER WORLD =====================
+// function renderWorld(){
+//   initWorldMap();
+//   if(ME.worldPos&&ME.worldPos.x!==undefined&&ME.worldPos.tileX===undefined){
+//     ME.worldPos={tileX:Math.max(0,Math.min(MAP_W-1,Math.floor(ME.worldPos.x/TILE_SIZE))),
+//                  tileY:Math.max(0,Math.min(MAP_H-1,Math.floor(ME.worldPos.y/TILE_SIZE)))};
+//     updateUser(ME); save();
+//   }
+//   if(!ME.worldPos||ME.worldPos.tileX===undefined){
+//     let tx,ty; do{tx=5+Math.floor(Math.random()*40);ty=5+Math.floor(Math.random()*40);}
+//     while(worldMap[ty]&&worldMap[ty][tx]==='water');
+//     ME.worldPos={tileX:tx,tileY:ty}; updateUser(ME); save();
+//   }
+//   if(!worldBgCanvas) buildWorldBg();
+
+//   document.getElementById('world-content').innerHTML=
+//     `<div style="position:relative">
+//        <canvas id="world-canvas" width="${CANVAS_W}" height="${CANVAS_H}"
+//          style="display:block;cursor:crosshair;border:1px solid var(--borderg);image-rendering:pixelated;max-width:100%"></canvas>
+//        <div style="font-size:9px;color:var(--textd);margin-top:4px">
+//          Кликни по карте — твой герой пойдёт туда · По воде нельзя
+//        </div>
+//      </div>`;
+//   document.getElementById('world-canvas').addEventListener('click', handleWorldClick);
+//   DB.users.filter(u=>u.worldPos&&u.worldPos.tileX!==undefined).forEach(_initLerp);
+//   _initLerp(ME);
+//   loadWorldAssets();
+//   if(worldRafId) cancelAnimationFrame(worldRafId);
+//   worldLastTs=0;
+//   function _loop(ts){
+//     if(!document.getElementById('world-canvas')){worldRafId=null;return;}
+//     const dt=worldLastTs?(ts-worldLastTs)/1000:0; worldLastTs=ts;
+//     _tickWorld(dt); drawWorld();
+//     worldRafId=requestAnimationFrame(_loop);
+//   }
+//   worldRafId=requestAnimationFrame(_loop);
+// }
+
+// function _tickWorld(dt){
+//   const SPEED=3.0;
+//   for(const name in worldLerps){
+//     const lr=worldLerps[name];
+//     if(lr.t<1){lr.t=Math.min(1,lr.t+dt*SPEED);if(lr.t>=1)lr.moving=false;}
+//   }
+//   DB.users.filter(u=>u.worldPos&&u.worldPos.tileX!==undefined).forEach(u=>{
+//     if(!worldLerps[u.name]) _initLerp(u);
+//     const lr=worldLerps[u.name];
+//     if(lr.tx!==u.worldPos.tileX||lr.ty!==u.worldPos.tileY) _startMove(u.name,u.worldPos.tileX,u.worldPos.tileY);
+//   });
+// }
+
+// function stopWorldAnim(){
+//   if(worldRafId){cancelAnimationFrame(worldRafId);worldRafId=null;}
+// }
+
+// function handleWorldClick(e){
+//   const canvas=e.currentTarget,rect=canvas.getBoundingClientRect();
+//   const tx=Math.floor((e.clientX-rect.left)*(CANVAS_W/rect.width)/TILE_SIZE);
+//   const ty=Math.floor((e.clientY-rect.top)*(CANVAS_H/rect.height)/TILE_SIZE);
+//   const cx=Math.max(0,Math.min(MAP_W-1,tx)),cy=Math.max(0,Math.min(MAP_H-1,ty));
+//   if(worldMap&&worldMap[cy]&&worldMap[cy][cx]==='water') return;
+//   _startMove(ME.name,cx,cy);
+//   ME.worldPos={tileX:cx,tileY:cy}; updateUser(ME); save();
+// }
+
+// function drawWorld(){
+//   const canvas=document.getElementById('world-canvas'); if(!canvas) return;
+//   const ctx=canvas.getContext('2d');
+//   const cs=getComputedStyle(document.documentElement);
+//   const cAccent=cs.getPropertyValue('--accent').trim()||'#ff6600';
+//   const cText=cs.getPropertyValue('--text').trim()||'#c8a060';
+//   const cBg=cs.getPropertyValue('--bg').trim()||'#100c04';
+//   if(worldBgCanvas) ctx.drawImage(worldBgCanvas,0,0);
+//   else{ctx.fillStyle='#0a1a08';ctx.fillRect(0,0,CANVAS_W,CANVAS_H);}
+
+//   const players=DB.users.filter(u=>u.worldPos&&u.worldPos.tileX!==undefined);
+//   players.forEach(u=>{if(!worldLerps[u.name])_initLerp(u);});
+//   players.sort((a,b)=>{
+//     const la=worldLerps[a.name],lb=worldLerps[b.name];
+//     const ya=la?la.fy+(la.ty-la.fy)*_easeIO(Math.min(1,la.t)):0;
+//     const yb=lb?lb.fy+(lb.ty-lb.fy)*_easeIO(Math.min(1,lb.t)):0;
+//     return ya-yb;
+//   });
+//   players.forEach(u=>{
+//     const isMe=u.name===ME.name,lr=worldLerps[u.name]; if(!lr) return;
+//     const et=_easeIO(Math.min(1,lr.t));
+//     const vx=(lr.fx+(lr.tx-lr.fx)*et)*TILE_SIZE+TILE_SIZE/2;
+//     const vy=(lr.fy+(lr.ty-lr.fy)*et)*TILE_SIZE+TILE_SIZE;
+//     const moving=lr.moving||lr.t<1;
+//     const animF=moving?Math.floor(performance.now()/130)%8:0;
+
+//     ctx.globalAlpha=0.18;ctx.fillStyle='#000';
+//     ctx.beginPath();ctx.ellipse(vx,vy+TILE_SIZE*0.3,TILE_SIZE*0.7,TILE_SIZE*0.2,0,0,Math.PI*2);ctx.fill();
+//     ctx.globalAlpha=1;
+
+//     const sprite=getSpriteForUser(u);
+//     const SW=TILE_SIZE*2,SH=TILE_SIZE*2.5;
+//     if(sprite){
+//       const frm=UGS.getFrame(sprite,lr.dir,animF);
+//       if(frm) ctx.drawImage(frm,vx-SW/2,vy-SH,SW,SH);
+//     } else {
+//       ctx.font=`${TILE_SIZE*1.5}px serif`;ctx.textAlign='center';ctx.textBaseline='bottom';
+//       ctx.fillText(u.avatar||'?',vx,vy);
+//     }
+
+//     if(isMe){
+//       ctx.strokeStyle=cAccent;ctx.lineWidth=1;ctx.globalAlpha=0.5;
+//       ctx.strokeRect(vx-TILE_SIZE,vy-TILE_SIZE*2.3,TILE_SIZE*2,TILE_SIZE*2.3);
+//       ctx.globalAlpha=1;
+//     }
+
+//     const nick=u.name.length>11?u.name.substring(0,10)+'…':u.name;
+//     ctx.font='bold 8px Tahoma,sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+//     const tw=ctx.measureText(nick).width+6;
+//     ctx.globalAlpha=0.6;ctx.fillStyle=cBg;ctx.fillRect(vx-tw/2,vy+2,tw,11);
+//     ctx.globalAlpha=1;ctx.fillStyle=isMe?cAccent:cText;ctx.fillText(nick,vx,vy+3);
+//   });
+// }
 
 // ===== UTILS =====
 function uid() { return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
