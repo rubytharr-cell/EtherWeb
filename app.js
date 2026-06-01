@@ -55,7 +55,7 @@ function attachImage() {
   if(url) { attachedImage = url; toast('Фото прикреплено к мыслеформе.'); }
 }
 
-const LEVELS = ['неофит','блуждающий разум','ищущий','буйный','созерцатель','пуник','практик','знающий','пустое поле'];
+const LEVELS = ['неофит','блуждающий разум','ищущий','буйный','созерцатель','пуник','практик','знающий','пустое поле','демиург'];
 
 const SYMBOLS = ['🜂','🜄','🜃','🜁','☽','☉','☿','⚗','🝊','🜔','✦','⟡','⊷','⊶','★','⚡','Ψ','⊕','☯','♾','∞','△','▽','◇','⚸','❋','✶','⊻','∴','∵','◉','⊗'];
 
@@ -192,9 +192,9 @@ function setSelColor(bg, fg) {
 let idleT;
 const veil = document.getElementById('veil');
 function resetIdle() {
-  clearTimeout(idleT);
-  veil.style.background='rgba(0,0,0,0)';
-  idleT=setTimeout(()=>{ veil.style.background='rgba(0,0,0,0.65)'; },180000);
+  // clearTimeout(idleT);
+  // veil.style.background='rgba(0,0,0,0)';
+  // idleT=setTimeout(()=>{ veil.style.background='rgba(0,0,0,0.65)'; },180000);
 }
 resetIdle();
 
@@ -1086,8 +1086,10 @@ const _abSounds = [
   new Audio('sounds/astralbody2.wav'),
   new Audio('sounds/astralbody3.wav'),
 ];
+let _abIdx = 0;
 function playAstralSound() {
-  const s = _abSounds[Math.floor(Math.random() * _abSounds.length)];
+  const s = _abSounds[_abIdx % _abSounds.length];
+  _abIdx++;
   s.currentTime = 0;
   s.play().catch(()=>{});
 }
@@ -1394,6 +1396,99 @@ const SLAVIC_RUNES = [
    rx:'Отрицание существования, побег от настоящего, небытие как выбор.'},
 ];
 
+// ===== СКАНДИНАВСКИЕ РУНЫ (Elder Futhark, 24) =====
+const NORSE_RUNES = [
+  {name:'Феху',   sym:'ᚠ', col:'#1a0a00', up:'Богатство, удача, поток энергии. Что имеешь — то и растёт.', rx:'Алчность, потеря, застой ресурсов.'},
+  {name:'Уруз',   sym:'ᚢ', col:'#1a0500', up:'Дикая сила, здоровье, первобытная мощь. Стихия в тебе.', rx:'Слабость, болезнь, необузданная агрессия.'},
+  {name:'Турисаз',sym:'ᚦ', col:'#200000', up:'Шип, защита, удар. Препятствие — или оружие.', rx:'Предательство, опасность без предупреждения.'},
+  {name:'Ансуз',  sym:'ᚨ', col:'#001020', up:'Послание богов, вдохновение, голос и слово. Слушай.', rx:'Обман, ложные сигналы, потеря связи с высшим.'},
+  {name:'Райдо',  sym:'ᚱ', col:'#001428', up:'Путешествие, движение, правильный ритм. Иди.', rx:'Задержка, неверный путь, потеря ориентира.'},
+  {name:'Кано',   sym:'ᚲ', col:'#200800', up:'Факел, ясность, творческий огонь. Видишь в темноте.', rx:'Темнота, потеря ориентира, угасание огня.'},
+  {name:'Гебо',   sym:'ᚷ', col:'#0a001a', up:'Дар, союз, обмен. Связь двух равных.', rx:'(Не переворачивается) — дисбаланс в отдаче и получении.'},
+  {name:'Вунйо',  sym:'ᚹ', col:'#001a00', up:'Радость, гармония, достижение. Ты в потоке.', rx:'Скорбь, отчуждение, нарушение гармонии.'},
+  {name:'Хагалаз',sym:'ᚺ', col:'#0a0a1a', up:'Град, хаос, вынужденное изменение. Сломанное — освобождает.', rx:'(Не переворачивается) — разрушение без трансформации.'},
+  {name:'Наутиз', sym:'ᚾ', col:'#1a0800', up:'Нужда, ограничение, необходимость. Урок через лишение.', rx:'Сковывающие нужды, сопротивление неизбежному.'},
+  {name:'Иса',    sym:'ᛁ', col:'#001428', up:'Лёд, остановка, концентрация. Застынь — и увидишь.', rx:'(Не переворачивается) — заморозка, блок, потеря движения.'},
+  {name:'Йера',   sym:'ᛃ', col:'#001800', up:'Урожай, цикл, плоды терпения. Время пришло.', rx:'(Не переворачивается) — цикл нарушен, плоды ещё не созрели.'},
+  {name:'Эйваз',  sym:'ᛇ', col:'#040400', up:'Тис, смерть-жизнь, защита. Ось между мирами.', rx:'(Не переворачивается) — нестабильность, потеря связи с корнями.'},
+  {name:'Перто',  sym:'ᛈ', col:'#100008', up:'Тайна, судьба, нераскрытое. Игра с неизвестным.', rx:'Разочарование, скрытое раскрыто не вовремя, секреты против тебя.'},
+  {name:'Альгиз', sym:'ᛉ', col:'#001810', up:'Защита, связь с богами, страж. Твоя стена держит.', rx:'Уязвимость, фальшивая защита, предательство опоры.'},
+  {name:'Соулу',  sym:'ᛊ', col:'#1a1000', up:'Солнце, победа, жизненная сила. Свет рассеивает тень.', rx:'(Не переворачивается) — слепящий свет, самонадеянность, тщеславие.'},
+  {name:'Тиваз',  sym:'ᛏ', col:'#0a0018', up:'Тюр, справедливость, жертва ради правого дела. Держи.', rx:'Несправедливость, поражение, неверная жертва.'},
+  {name:'Беркана',sym:'ᛒ', col:'#001800', up:'Берёза, рождение, рост, материнство. Новое начинается.', rx:'Задержка роста, семейный конфликт, невозможность зачать.'},
+  {name:'Эваз',   sym:'ᛖ', col:'#0a0800', up:'Конь, движение, сотрудничество. Союзник несёт дальше.', rx:'Сопротивление, застревание, неверный партнёр.'},
+  {name:'Манназ', sym:'ᛗ', col:'#080010', up:'Человек, разум, сообщество. Ты среди людей — и они с тобой.', rx:'Изоляция, конфликт, потеря человеческой поддержки.'},
+  {name:'Лагуз',  sym:'ᛚ', col:'#001420', up:'Вода, интуиция, поток. Не сопротивляйся — плыви.', rx:'Страх глубины, ложная интуиция, утопание в эмоциях.'},
+  {name:'Ингваз', sym:'ᛜ', col:'#001000', up:'Ингвар, плодородие, завершение цикла. Семя посеяно.', rx:'(Не переворачивается) — незавершённость, нереализованный потенциал.'},
+  {name:'Отала',  sym:'ᛟ', col:'#0a0800', up:'Наследие, родина, принадлежность. Корни дают силу.', rx:'Изгнание, потеря наследства, конфликт с родом.'},
+  {name:'Дагаз',  sym:'ᛞ', col:'#100800', up:'Рассвет, трансформация, прорыв в новый день. Поворотный момент.', rx:'(Не переворачивается) — смена без понимания, слепой прорыв.'},
+];
+
+let thrownNorseRunes = [];
+
+function renderNorseRunesSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">ᚠ СКАНДИНАВСКИЕ РУНЫ · ФУТАРК</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:12px">
+      24 руны Старшего Футарка. Три позиции: прошлое, настоящее, путь.
+    </div>
+    <button class="btn primary" onclick="throwNorseRunes()">ᚦ Бросить руны</button>
+    <div class="rune-spread" id="norse-rune-spread" style="margin-top:14px"></div>
+    <div class="rune-meanings" id="norse-rune-meanings"></div>
+  </div>`;
+}
+
+function throwNorseRunes() {
+  const pool = [...NORSE_RUNES];
+  thrownNorseRunes = [];
+  const positions = ['Прошлое','Настоящее','Путь'];
+  for (let i = 0; i < 3; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const rune = {...pool.splice(idx, 1)[0]};
+    rune.reversed = Math.random() < 0.4;
+    rune.position = positions[i];
+    thrownNorseRunes.push(rune);
+  }
+  const spread = document.getElementById('norse-rune-spread');
+  const meanings = document.getElementById('norse-rune-meanings');
+  if (!spread) return;
+  spread.innerHTML = thrownNorseRunes.map((r, i) => `
+    <div class="rune-wrap">
+      <div class="rune-tile face-down" id="nrtile-${i}" style="background:${r.col};animation-delay:${i*0.3}s" onclick="revealNorseRune(${i})">✦</div>
+      <div class="rune-name" id="nrname-${i}" style="display:none">${r.name}</div>
+      <div class="rune-pos">${r.position}</div>
+    </div>`).join('');
+  if (meanings) meanings.innerHTML = '';
+  thrownNorseRunes.forEach((_, i) => setTimeout(() => revealNorseRune(i), 400 + i * 500));
+}
+
+function revealNorseRune(i) {
+  const r = thrownNorseRunes[i];
+  if (!r) return;
+  const tile = document.getElementById(`nrtile-${i}`);
+  const nameEl = document.getElementById(`nrname-${i}`);
+  if (!tile) return;
+  tile.textContent = r.sym;
+  tile.classList.remove('face-down');
+  tile.classList.add('revealed');
+  if (r.reversed) tile.classList.add('rune-reversed');
+  if (nameEl) nameEl.style.display = 'block';
+  const meanings = document.getElementById('norse-rune-meanings');
+  if (!meanings) return;
+  const existing = document.getElementById(`nrmean-${i}`);
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = `nrmean-${i}`;
+  div.className = 'rune-meaning-block';
+  div.style.animationDelay = (i * 0.2) + 's';
+  div.innerHTML = `
+    <div class="rune-meaning-title">${r.position} · ${r.sym} ${r.name}${r.reversed ? ' [перевёрнутая]' : ''}</div>
+    ${r.reversed
+      ? `<span class="rune-meaning-rev">⊗ ${r.rx}</span>`
+      : `⟡ ${r.up}`}`;
+  meanings.appendChild(div);
+}
+
 // ===== ADMIN HTML SNIPPETS =====
 const ADMIN_SNIPPETS = {
   'h1':      ['<h1>', '</h1>'],
@@ -1516,19 +1611,13 @@ const CHAOS_CARD = {
 let flippedCards = new Set();
 
 function drawTarot() {
-  // С шансом ~5% одна карта заменяется на Карту Безумия
-  const deck = [...TAROT_CARDS];
+  const deck = [...TAROT_CARDS, {...CHAOS_CARD}]; // 79 карт — Карта Безумия с равным шансом
   drawnCards = [];
   flippedCards = new Set();
 
   for (let i = 0; i < tarotMode; i++) {
-    let card;
-    if (Math.random() < 0.05) {
-      card = {...CHAOS_CARD};
-    } else {
-      const idx = Math.floor(Math.random() * deck.length);
-      card = {...deck.splice(idx, 1)[0]};
-    }
+    const idx = Math.floor(Math.random() * deck.length);
+    const card = {...deck.splice(idx, 1)[0]};
     card.reversed = Math.random() < 0.35;
     drawnCards.push(card);
   }
@@ -1806,6 +1895,14 @@ function renderMinigames() {
         </div>
         <div class="mg-card-arr">▶</div>
       </div>
+      <div class="mg-card" onclick="openMiniGame('norse')">
+        <div class="mg-card-icon">ᚠ</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Скандинавские руны</div>
+          <div class="mg-card-desc">24 руны Футарка · расклад трёх · прямая и перевёрнутая</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
     </div>`;
 }
 
@@ -1820,6 +1917,7 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'sphere') body = renderSphereSection();
   if (activeMiniGame === 'tarot')  body = renderTarotSection();
   if (activeMiniGame === 'runes')  body = renderRunesSection();
+  if (activeMiniGame === 'norse')  body = renderNorseRunesSection();
   document.getElementById('minigames-content').innerHTML = back + body;
 }
 
