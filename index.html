@@ -70,11 +70,13 @@
 
   <div id="nav">
     <button class="nav-tab active" onclick="showPage('ether')">⟡ Эфир</button>
+    <button class="nav-tab" onclick="showPage('subs')">📬 Подписки</button>
     <button class="nav-tab" onclick="showPage('broadcasts')">📡 Вещания</button>
     <button class="nav-tab" onclick="showPage('chats')">✉ Личные чаты <span id="unread-badge" class="badge" style="display:none">0</span></button>
     <button class="nav-tab" onclick="showPage('mypage')">📋 Мои Трансляции</button>
     <button class="nav-tab" onclick="showPage('profile')">🝊 Астральное тело</button>
     <button class="nav-tab" onclick="showPage('minigames')">🎲 Мини-игры</button>
+    <!-- <button class="nav-tab" onclick="showPage('world')">🌐 Мир</button> -->
     <div class="nav-right">
       <span class="online-dot"></span><span id="nav-uname" style="color:var(--accent2)"></span>
       &nbsp;<button class="btn sm danger" onclick="doLogout()">выйти</button>
@@ -95,7 +97,10 @@
             <select id="post-forum-sel" style="margin-bottom:6px;font-size:10px">
               <option value="">— Личная трансляция (без форума) —</option>
             </select>
-            <textarea id="compose-text" placeholder="Что происходит в твоём сознании..."></textarea>
+            <div style="position:relative">
+              <textarea id="compose-text" placeholder="Что происходит в твоём сознании..." onfocus="activeComposeId='compose-text'"></textarea>
+              <div id="mention-dropdown" class="mention-dropdown"></div>
+            </div>
             <!-- Символьная клавиатура -->
             <div id="symbol-picker-main" class="symbol-picker" style="display:none"></div>
             <div style="display:flex;gap:4px;margin-top:6px;align-items:center;flex-wrap:wrap">
@@ -145,6 +150,9 @@
         
         <!-- FEED -->
         <div class="win">
+          <div class="search-feed-row">
+            <input id="feed-search" placeholder="🔍 Поиск по постам и авторам..." oninput="searchFeed()" style="flex:1;font-size:10px;padding:3px 6px">
+          </div>
           <div class="win-title">
             <span class="win-title-txt">⊶ Эфир — Ваша лента</span>
             <div class="wbtns"><div class="wbtn x">✕</div></div>
@@ -180,6 +188,10 @@
           <div class="sb-section">
             <div class="sb-title">ГОРЯЧИЕ ТЕМЫ</div>
             <div id="sb-hot"></div>
+          </div>
+          <div class="sb-section">
+            <div class="sb-title">РЕЙТИНГ ДУХОВ</div>
+            <div id="sb-leaderboard"></div>
           </div>
           <div class="sb-section">
             <div style="color:var(--textd);font-size:10px;line-height:1.8;padding:2px 0">
@@ -401,6 +413,24 @@
     </div>
   </div>
 
+  <!-- ===== ПОДПИСКИ ===== -->
+  <div id="page-subs" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">📬 Лента подписок</span></div>
+          <div id="subs-feed-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">🔗 Мои подписки</span></div>
+          <div id="sb-subs-page" class="sb-section" style="font-size:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== MINIGAMES ===== -->
   <div id="page-minigames" class="page">
     <div class="layout2">
@@ -429,6 +459,30 @@
     </div>
   </div>
 
+  <!-- ===== МИР (закомментировано) ===== -->
+  <!-- <div id="page-world" class="page">
+    <div class="layout2">
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">🌐 Мир — Блуждающие разумы</span></div>
+          <div style="padding:8px" id="world-content">
+            <div class="empty-state">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">⊷ Присутствие</span></div>
+          <div style="padding:8px;font-size:9px;color:var(--textd);line-height:2">
+            Кликни по карте — твой герой переместится.<br>
+            Другие игроки видны в реальном времени.<br>
+            Твой герой обведён рамкой.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
 </div><!-- /app -->
 
 <!-- USER PROFILE MODAL -->
@@ -450,6 +504,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="ugs.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
