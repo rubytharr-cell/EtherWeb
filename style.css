@@ -672,6 +672,116 @@ body.theme-firefly .tb-start { background:linear-gradient(180deg,#2a2a00,#141400
 body.theme-firefly .btn.primary { background:#181a00; border-color:#2e2e00; }
 body.theme-firefly .btn.primary:hover { background:#222500; border-color:var(--accent); }
 
+/* ===== ТЕМА: БАГРОВЫЙ НОКТЮРН ===== */
+body.theme-nocturne {
+  --bg:       #080003;
+  --panel:    #0c0004;
+  --win:      #0e0005;
+  --border:   #2a0008;
+  --borderg:  #4a0010;
+  --text:     #c87070;
+  --textd:    #4a0010;
+  --accent:   #cc1122;
+  --accent2:  #ff4455;
+  --adminc:   #ff6600;
+  --resonc:   #cc2233;
+  --cursec:   #661100;
+  --link:     #dd3344;
+  --linkv:    #881122;
+  --titlebar: linear-gradient(180deg,#1a0008,#080003);
+  --sel-bg:   #2a0008;
+  --sel-fg:   #ff4455;
+  --spark:    #cc1122;
+  --btn:      #0e0005;
+  --btnhi:    #1a0008;
+  --input:    #080003;
+  --tab-bg:   #080003;
+}
+body.theme-nocturne #site-header { background:linear-gradient(180deg,#0a0005,#0e0005); }
+body.theme-nocturne #site-header::before { background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(180,0,30,.06),transparent); }
+body.theme-nocturne .site-name { color:var(--accent2); text-shadow:0 0 12px var(--accent),0 0 30px rgba(180,0,30,.4),2px 2px 0 #000; }
+body.theme-nocturne .win { box-shadow:inset 1px 1px 0 rgba(180,0,30,.04),0 0 18px rgba(120,0,20,.1),0 4px 20px rgba(0,0,0,.85); }
+body.theme-nocturne .win-title-txt { color:#ee8888; text-shadow:1px 1px 0 #000,0 0 8px rgba(180,0,30,.5); }
+body.theme-nocturne .post:hover { background:rgba(180,0,30,.03); }
+body.theme-nocturne #taskbar { background:linear-gradient(180deg,#0e0005,#080003); }
+body.theme-nocturne .tb-start { background:linear-gradient(180deg,#2a0008,#140004); border-color:#4a0010; color:#ff4455; }
+body.theme-nocturne .btn.primary { background:#1a0008; border-color:#4a0010; }
+body.theme-nocturne .btn.primary:hover { background:#220008; border-color:var(--accent); }
+
+/* ===== ТЕМА: РЕЗОНАНС ===== */
+body.theme-resonance {
+  --bg:       #050008;
+  --panel:    #07000c;
+  --win:      #09000e;
+  --border:   #1a0040;
+  --borderg:  #2a0060;
+  --text:     #b080e0;
+  --textd:    #2a0060;
+  --accent:   #9933ff;
+  --accent2:  #cc88ff;
+  --adminc:   #ffcc00;
+  --resonc:   #aa44ff;
+  --cursec:   #ff2266;
+  --link:     #bb55ff;
+  --linkv:    #772299;
+  --titlebar: linear-gradient(180deg,#1a0040,#05000a);
+  --sel-bg:   #1a0040;
+  --sel-fg:   #cc88ff;
+  --spark:    #9933ff;
+  --btn:      #0c0012;
+  --btnhi:    #160020;
+  --input:    #050008;
+  --tab-bg:   #050008;
+}
+body.theme-resonance #site-header { background:linear-gradient(180deg,#07000c,#09000e); }
+body.theme-resonance #site-header::before { background:radial-gradient(ellipse 60% 100% at 50% 50%,rgba(150,50,255,.07),transparent); }
+body.theme-resonance .site-name { color:var(--accent2); text-shadow:0 0 12px var(--accent),0 0 30px rgba(150,50,255,.4),2px 2px 0 #000; animation:resonancePulse 4s ease-in-out infinite; }
+@keyframes resonancePulse { 0%,100%{text-shadow:0 0 12px #9933ff,0 0 30px rgba(150,50,255,.4),2px 2px 0 #000} 50%{text-shadow:0 0 20px #cc88ff,0 0 60px rgba(180,100,255,.6),0 0 90px rgba(255,200,50,.2),2px 2px 0 #000} }
+body.theme-resonance .win { box-shadow:inset 1px 1px 0 rgba(150,50,255,.05),0 0 20px rgba(100,0,200,.1),0 4px 20px rgba(0,0,0,.85); }
+body.theme-resonance .win-title-txt { color:#cc99ff; text-shadow:1px 1px 0 #000,0 0 8px rgba(150,50,255,.5); }
+body.theme-resonance .post:hover { background:rgba(150,50,255,.03); }
+body.theme-resonance #taskbar { background:linear-gradient(180deg,#09000e,#050008); }
+body.theme-resonance .tb-start { background:linear-gradient(180deg,#1a0040,#0c0020); border-color:#2a0060; color:#cc88ff; }
+body.theme-resonance .btn.primary { background:#160020; border-color:#2a0060; }
+body.theme-resonance .btn.primary:hover { background:#1e0030; border-color:var(--accent); }
+
+/* ===== ТЕМА: ТЕРМИНАЛ '08 ===== */
+body.theme-terminal {
+  --bg:       #000000;
+  --panel:    #020202;
+  --win:      #030303;
+  --border:   #1a1a00;
+  --borderg:  #2a2a00;
+  --text:     #cc9900;
+  --textd:    #665500;
+  --accent:   #ffaa00;
+  --accent2:  #ffcc44;
+  --adminc:   #ff4400;
+  --resonc:   #aacc00;
+  --cursec:   #cc4400;
+  --link:     #ffbb22;
+  --linkv:    #997700;
+  --titlebar: linear-gradient(180deg,#111100,#030300);
+  --sel-bg:   #221a00;
+  --sel-fg:   #ffcc44;
+  --spark:    #ffaa00;
+  --btn:      #0a0900;
+  --btnhi:    #161400;
+  --input:    #000000;
+  --tab-bg:   #000000;
+}
+body.theme-terminal #site-header { background:#000000; border-bottom:1px solid #333300; }
+body.theme-terminal #site-header::before { display:none; }
+body.theme-terminal .site-name { color:var(--accent); text-shadow:0 0 6px var(--accent); font-family:monospace; letter-spacing:3px; }
+body.theme-terminal .win { box-shadow:none; border:1px solid #333300; }
+body.theme-terminal .win-title-txt { color:#ffcc44; text-shadow:none; font-family:monospace; }
+body.theme-terminal .post:hover { background:rgba(255,170,0,.04); }
+body.theme-terminal #taskbar { background:#000000; border-top:1px solid #333300; }
+body.theme-terminal .tb-start { background:#111100; border-color:#333300; color:#ffaa00; font-family:monospace; }
+body.theme-terminal .btn.primary { background:#161400; border-color:#333300; font-family:monospace; }
+body.theme-terminal .btn.primary:hover { background:#221a00; border-color:var(--accent); }
+body.theme-terminal * { font-family: 'Courier New', Courier, monospace !important; }
+
 /* ===== САМОЦВЕТЫ (DICE) ===== */
 .dice-section { margin-top:16px; }
 .dice-types { display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
