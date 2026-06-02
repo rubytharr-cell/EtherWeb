@@ -17,7 +17,8 @@ let DB = {
   comments: {},
   forums: [],
   forumPosts: {},
-  messages: {}
+  messages: {},
+  groupChats: []
 };
 let ME = null;
 let curForumId = null;
@@ -298,7 +299,7 @@ function showPage(p) {
   const tabs = document.querySelectorAll('.nav-tab');
   const map = {ether:0, subs:1, broadcasts:2, chats:3, mypage:4, profile:5, minigames:6, /*world:7*/};
   if(map[p]!==undefined) tabs[map[p]].classList.add('active');
-  if(p==='chats') renderDialogs();
+  if(p==='chats') { renderDialogs(); renderGroupChats(); renderAllGroups(); }
   if(p==='profile') renderProfilePage();
   if(p==='broadcasts') renderForums();
   if(p==='mypage') renderMyPage(ME);
@@ -841,6 +842,14 @@ function closeChat() {
   document.getElementById('chat-active').style.display='none';
 }
 
+function switchChatTab(tab) {
+  document.getElementById('chat-tab-dm').style.display    = tab==='dm'    ? '' : 'none';
+  document.getElementById('chat-tab-group').style.display = tab==='group' ? '' : 'none';
+  document.getElementById('tab-dm').classList.toggle('active', tab==='dm');
+  document.getElementById('tab-group').classList.toggle('active', tab==='group');
+  if (tab==='group') { renderGroupChats(); renderAllGroups(); }
+}
+
 function msgKey(a,b) { return [a,b].sort().join(':'); }
 
 function renderMessages() {
@@ -1338,62 +1347,65 @@ const TAROT_CARDS = [
 ];
 
 // ===== СЛАВЯНСКИЕ РУНЫ (18) =====
+// Символы подобраны из Unicode-блока 16A0–16FF (Runic) по визуальному сходству с фото.
+// Порядок: Мир → Треба → Рок → Чернобог → Сила → Опора → Алатырь → Ветер → Даждьбог
+//           → Радуга → Берегиня → Перун → Нужда → Уд → Есть → Крада → Леля → Исток
 const SLAVIC_RUNES = [
-  {name:'Мир',      sym:'ᛗ', col:'#001a10',
-   up:'Гармония, порядок, защита, союз с миром богов и людей.',
-   rx:'Хаос, конфликт, разрушение установленного порядка.',
-   pos:['Прошлое','Настоящее','Путь']},
-  {name:'Чернобог', sym:'ᚦ', col:'#1a0000',
-   up:'Испытание, тёмная сила, разрушение старого ради нового.',
-   rx:'Слепая тьма, саморазрушение, отказ учиться на испытании.'},
-  {name:'Алатырь',  sym:'ᚨ', col:'#1a1000',
-   up:'Центр мира, равновесие, начало и конец всего. Ось бытия.',
-   rx:'Дисбаланс, потеря центра, блуждание без опоры.'},
-  {name:'Радуга',   sym:'ᚱ', col:'#001428',
-   up:'Связь между мирами, мост, дорога. Иди — путь открыт.',
-   rx:'Потеря пути, застревание между мирами, ложный выбор.'},
-  {name:'Нужда',    sym:'ᚾ', col:'#1a0a00',
-   up:'Ограничение, необходимость, кармический урок. Пройди — вырастешь.',
-   rx:'Рабство обстоятельствам, отказ учиться, цикл повторяется.'},
-  {name:'Крада',    sym:'ᚲ', col:'#200500',
-   up:'Очистительный огонь, жертва, трансформация через горение.',
-   rx:'Выгорание, жертва без смысла, всё сгорает зря.'},
-  {name:'Треба',    sym:'ᛏ', col:'#0a0a1a',
+  {name:'Мир (Белобог)', sym:'ᛉ', col:'#001a10',
+   up:'Гармония, порядок, защита. Союз с миром богов и людей. Белобог хранит.',
+   rx:'Хаос, конфликт, разрушение установленного порядка.'},
+  {name:'Треба',         sym:'ᛏ', col:'#0a0a1a',
    up:'Жертвоприношение, долг, исполнение обязательств богам и людям.',
    rx:'Отказ от долга, нарушение клятвы, духовная пустота.'},
-  {name:'Сила',     sym:'ᛊ', col:'#0a1a00',
-   up:'Жизненная сила, воля, энергия духа. Ты сильнее чем думаешь.',
-   rx:'Слабость духа, утечка силы, чужая воля вместо своей.'},
-  {name:'Ветер',    sym:'ᚹ', col:'#00101a',
-   up:'Дух, движение, перемены, воля богов. Не сопротивляйся потоку.',
-   rx:'Застой, отрицание перемен, страх движения.'},
-  {name:'Берег',    sym:'ᛒ', col:'#001a08',
-   up:'Защита, безопасность, мать-земля, возвращение домой.',
-   rx:'Беззащитность, изгнание, потеря почвы под ногами.'},
-  {name:'Уд',       sym:'ᚢ', col:'#1a0800',
-   up:'Жизненная сила рода, страсть, творческое начало, потенция.',
-   rx:'Разрушение связи с родом, угасание силы, творческий кризис.'},
-  {name:'Леля',     sym:'ᛚ', col:'#001020',
-   up:'Любовь, интуиция, вода, весна, обновление. Сердце знает.',
-   rx:'Холодность, подавление чувств, потеря связи с интуицией.'},
-  {name:'Рок',      sym:'ᛞ', col:'#100010',
+  {name:'Рок',           sym:'ᛡ', col:'#100010',
    up:'Судьба, неизбежность, высший закон. Прими — и освободишься.',
    rx:'Бегство от судьбы, борьба с неизбежным, кармический долг.'},
-  {name:'Опора',    sym:'ᚩ', col:'#0a0a00',
+  {name:'Чернобог',      sym:'ᛦ', col:'#1a0000',
+   up:'Испытание, тёмная сила, разрушение старого ради нового.',
+   rx:'Слепая тьма, саморазрушение, отказ учиться на испытании.'},
+  {name:'Сила',          sym:'ᛋ', col:'#0a1a00',
+   up:'Жизненная сила, воля, энергия духа. Ты сильнее чем думаешь.',
+   rx:'Слабость духа, утечка силы, чужая воля вместо своей.'},
+  {name:'Опора',         sym:'ᚯ', col:'#0a0a00',
    up:'Предки, традиция, корни, поддержка из прошлого.',
    rx:'Одиночество, отрыв от корней, отрицание помощи предков.'},
-  {name:'Даждьбог', sym:'ᛞ', col:'#1a1000',
+  {name:'Алатырь',       sym:'ᛆ', col:'#1a1000',
+   up:'Центр мира, равновесие, начало и конец всего. Ось бытия.',
+   rx:'Дисбаланс, потеря центра, блуждание без опоры.'},
+  {name:'Ветер',         sym:'⌂', col:'#00101a',
+   svg:'<svg viewBox="0 0 60 82" width="56" height="76" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="30" y1="4" x2="4" y2="28"/><line x1="30" y1="4" x2="56" y2="28"/><line x1="4" y1="28" x2="4" y2="78"/><line x1="56" y1="28" x2="56" y2="78"/></svg>',
+   up:'Дух, движение, перемены, воля богов. Не сопротивляйся потоку.',
+   rx:'Застой, отрицание перемен, страх движения.'},
+  {name:'Даждьбог',      sym:'ᚦ', col:'#1a1000',
    up:'Дарующий бог, изобилие, солнечный свет, щедрость.',
    rx:'Жадность, удача закрыта, блокировка благодати.'},
-  {name:'Перун',    sym:'ᛈ', col:'#0a0a1a',
+  {name:'Радуга',        sym:'ᚱ', col:'#001428',
+   up:'Связь между мирами, мост, дорога. Иди — путь открыт.',
+   rx:'Потеря пути, застревание между мирами, ложный выбор.'},
+  {name:'Берегиня',      sym:'ᚫ', col:'#001a08', mirrorV:true,
+   up:'Защита, безопасность, мать-земля, возвращение домой.',
+   rx:'Беззащитность, изгнание, потеря почвы под ногами.'},
+  {name:'Перун',         sym:'∏', col:'#0a0a1a',
    up:'Гром, справедливость, очищение. Перун судит — и он справедлив.',
    rx:'Слепой гнев, несправедливое наказание, разрушение вместо защиты.'},
-  {name:'Исток',    sym:'ᛁ', col:'#001818',
-   up:'Начало, источник, первопричина всего сущего.',
-   rx:'Потеря смысла, разрыв с первопричиной, бессмысленное существование.'},
-  {name:'Есть',     sym:'ᛖ', col:'#0a1000',
+  {name:'Нужда',         sym:'ᚳ', col:'#1a0a00',
+   up:'Ограничение, необходимость, кармический урок. Пройди — вырастешь.',
+   rx:'Рабство обстоятельствам, отказ учиться, цикл повторяется.'},
+  {name:'Уд',            sym:'հ', col:'#1a0800',
+   up:'Жизненная сила рода, страсть, творческое начало, потенция.',
+   rx:'Разрушение связи с родом, угасание силы, творческий кризис.'},
+  {name:'Есть',          sym:'ᚫ', col:'#0a1000', mirrorH:true,
    up:'Бытие, существование, настоящий момент. Ты есть — и это сила.',
    rx:'Отрицание существования, побег от настоящего, небытие как выбор.'},
+  {name:'Крада',         sym:'ᚳ', col:'#200500', mirrorV:true,
+   up:'Очистительный огонь, жертва, трансформация через горение.',
+   rx:'Выгорание, жертва без смысла, всё сгорает зря.'},
+  {name:'Леля',          sym:'ᛚ', col:'#001020',
+   up:'Любовь, интуиция, вода, весна, обновление. Сердце знает.',
+   rx:'Холодность, подавление чувств, потеря связи с интуицией.'},
+  {name:'Исток',         sym:'ᛁ', col:'#001818',
+   up:'Начало, источник, первопричина всего сущего.',
+   rx:'Потеря смысла, разрыв с первопричиной, бессмысленное существование.'},
 ];
 
 // ===== СКАНДИНАВСКИЕ РУНЫ (Elder Futhark, 24) =====
@@ -1468,7 +1480,7 @@ function revealNorseRune(i) {
   const tile = document.getElementById(`nrtile-${i}`);
   const nameEl = document.getElementById(`nrname-${i}`);
   if (!tile) return;
-  tile.textContent = r.sym;
+  if (r.svg) { tile.innerHTML = r.svg; } else { tile.textContent = r.sym; }
   tile.classList.remove('face-down');
   tile.classList.add('revealed');
   if (r.reversed) tile.classList.add('rune-reversed');
@@ -1578,6 +1590,20 @@ function renderSubsFeed() {
 let tarotMode = 1; // 1 или 3 карты
 let drawnCards = [];
 
+const TAROT_SPREAD_LABELS = {
+  1:  [''],
+  3:  ['Прошлое','Настоящее','Будущее'],
+  // Подкова: левая колонна вниз (0-2), дно (3), правая колонна вверх (4-6)
+  7:  ['Прошлое','Настоящее','Скрытые силы','Препятствие','Окружение','Что делать','Итог'],
+  // Кельтский крест: (0)центр, (1)пересечение, (2)прошлое, (3)корона, (4)будущее, (5)основа, (6-9)штаб
+  10: ['Ситуация','Пересечение','Прошлое','Корона','Будущее','Основа','Позиция','Окружение','Надежды','Итог'],
+  // Дерево Жизни (10 Сефирот): сверху вниз, поочерёдно правое/левое
+  11: ['Кетер','Хокма','Бина','Хесед','Гебура','Тиферет','Нецах','Ход','Йесод','Малкут'],
+};
+const TAROT_SPREAD_NAMES = {
+  1:'Одна карта', 3:'Три карты', 7:'Подкова', 10:'Кельтский крест', 11:'Дерево Жизни'
+};
+
 function renderTarotSection() {
   return `<div class="profile-section">
     <div class="profile-section-title">🃏 ТАРО — РАСКЛАД КАРТ</div>
@@ -1585,11 +1611,17 @@ function renderTarotSection() {
       Сосредоточься на вопросе. Карты отвечают.
     </div>
     <div class="tarot-mode-btns">
-      <button class="btn sm${tarotMode===1?' primary':''}" onclick="setTarotMode(1)">Одна карта</button>
-      <button class="btn sm${tarotMode===3?' primary':''}" onclick="setTarotMode(3)">Расклад 3 карты</button>
+      ${Object.entries(TAROT_SPREAD_NAMES).map(([m,n])=>`
+        <button class="btn sm${tarotMode===+m?' primary':''}" onclick="setTarotMode(${m})">${n}</button>
+      `).join('')}
     </div>
-    <button class="btn primary" onclick="drawTarot()" style="margin-bottom:8px">⟡ Вытянуть карту</button>
-    <div id="tarot-spread" class="tarot-spread"></div>
+    <div style="font-size:9px;color:var(--textd);margin-bottom:8px">${
+      tarotMode===10?'10 карт · Кельтский крест — полный анализ ситуации':
+      tarotMode===7 ?'7 карт · Подкова — прошлое, настоящее, путь вперёд':
+      tarotMode===11?'10 карт · Дерево Жизни (Каббала) — 10 сефирот, от Кетера до Малкута':''
+    }</div>
+    <button class="btn primary" onclick="drawTarot()" style="margin-bottom:8px">⟡ Вытянуть карты</button>
+    <div id="tarot-spread" class="tarot-spread${tarotMode===10?' tarot-cross':tarotMode===7?' tarot-horseshoe':tarotMode===11?' tarot-tree':''}"></div>
     <div id="tarot-desc" class="tarot-desc" style="display:none"></div>
   </div>`;
 }
@@ -1603,9 +1635,9 @@ const SUIT_SYMS = { wands:'🜂', cups:'🜄', swords:'🜁', pents:'🜃' };
 
 // Карта Безумия — секретная 79я карта (не упоминается в UI)
 const CHAOS_CARD = {
-  id:'∅', suit:'chaos', name:'Карта Безумия', sym:'∅', col:'#000000', suitLabel:'?',
-  up:'Система перегружена. Правила недействительны. Этой карты не существует.',
-  rx:'Порядок возникает из абсолютного хаоса. Невозможное становится единственно верным.'
+  id:'∅', suit:'chaos', name:'Карта Безумия', sym:'∅', col:'#000000', suitLabel:'Хаос',
+  up:'Эта карта не должна была выпасть — и именно поэтому выпала. Ты находишься в точке, где привычные законы перестают работать: причина не порождает следствие, прошлое не определяет будущее, а любой прогноз превращается в ложь в момент произнесения. Это не катастрофа — это разрыв в ткани привычного, сквозь который проникает что-то принципиально новое. Действуй вне системы. Не ищи логики там, где её нет. Именно сейчас возможно то, что было невозможно вчера.',
+  rx:'Хаос без вектора — это уже не свобода, а распад. Что-то разрушается не ради обновления, а просто потому что некому удержать. Энергия рассеивается впустую, события теряют связь друг с другом, и в этом беспорядке легко потерять себя. Остановись. Найди хотя бы одну точку опоры — не для того, чтобы вернуть контроль, а чтобы не раствориться окончательно. Из абсолютного ничто ничто и рождается.'
 };
 
 let flippedCards = new Set();
@@ -1615,14 +1647,15 @@ function drawTarot() {
   drawnCards = [];
   flippedCards = new Set();
 
-  for (let i = 0; i < tarotMode; i++) {
+  const cardCount = tarotMode === 11 ? 10 : tarotMode;
+  for (let i = 0; i < cardCount; i++) {
     const idx = Math.floor(Math.random() * deck.length);
     const card = {...deck.splice(idx, 1)[0]};
     card.reversed = Math.random() < 0.35;
     drawnCards.push(card);
   }
 
-  const labels = tarotMode === 3 ? ['Прошлое','Настоящее','Будущее'] : [''];
+  const labels = TAROT_SPREAD_LABELS[tarotMode] || [''];
   const spread = document.getElementById('tarot-spread');
   const desc = document.getElementById('tarot-desc');
   if (!spread) return;
@@ -1653,7 +1686,7 @@ function drawTarot() {
           <div class="tarot-front-suit" style="${isChaos?'color:#ff00ff':''}">${c.suitLabel}${c.reversed?' · ⊗':''}</div>
         </div>
       </div>
-      ${labels[i] ? `<div style="font-size:8px;color:var(--textd);text-align:center;margin-top:4px">${labels[i]}</div>` : ''}
+      ${labels[i] ? `<div class="tarot-position-label">${labels[i]}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -1675,7 +1708,7 @@ function renderTarotDescriptions() {
   if (!desc) return;
   if (flippedCards.size === 0) { desc.style.display = 'none'; return; }
 
-  const labels = tarotMode === 3 ? ['Прошлое','Настоящее','Будущее'] : [''];
+  const labels = TAROT_SPREAD_LABELS[tarotMode] || [''];
   const all = [...flippedCards].sort();
   const total = all.length;
 
@@ -1684,14 +1717,14 @@ function renderTarotDescriptions() {
     const c = drawnCards[i];
     const isChaos = c.suit === 'chaos';
     const nameStyle = isChaos ? 'color:#00ffff;text-shadow:0 0 6px #ff00ff;' : 'color:var(--accent2);';
-    const label = labels[i] ? `<span style="color:var(--textd);font-size:8px;letter-spacing:2px">${labels[i]} · </span>` : '';
+    const label = labels[i] ? `<div style="font-size:11px;font-weight:bold;color:var(--accent);letter-spacing:2px;margin-bottom:5px;text-shadow:0 0 6px var(--accent)">◈ ${labels[i]}</div>` : '';
     const revTag = c.reversed ? `<span style="color:var(--cursec);font-size:9px"> [перевёрнута]</span>` : '';
     const meaning = c.reversed
       ? `<span class="tarot-desc-rev">⊗ ${c.rx}</span>`
       : `⟡ ${c.up}`;
     const sep = idx < total-1 ? `border-bottom:1px dashed var(--border);margin-bottom:8px;padding-bottom:8px;` : '';
     return `<div style="${sep}">
-      ${label}<b style="${nameStyle}">${c.name}</b>${revTag}<br>${meaning}
+      ${label}<b style="${nameStyle};font-size:14px">${c.name}</b>${revTag}<br><div style="margin-top:4px">${meaning}</div>
     </div>`;
   }).join('');
 }
@@ -1741,7 +1774,17 @@ function revealRune(i) {
   const tile = document.getElementById(`rtile-${i}`);
   const nameEl = document.getElementById(`rname-${i}`);
   if (!tile) return;
-  tile.textContent = r.sym;
+  if (r.svg) {
+    tile.innerHTML = r.svg;
+  } else {
+    tile.textContent = r.sym;
+  }
+  let tileTransform = '';
+  if (r.mirrorH)  tileTransform += ' scaleX(-1)';
+  if (r.mirrorV)  tileTransform += ' scaleY(-1)';
+  if (r.scaleY)   tileTransform += ` scaleY(${r.scaleY})`;
+  if (r.scaleX)   tileTransform += ` scaleX(${r.scaleX})`;
+  if (tileTransform) tile.style.transform = tileTransform.trim();
   tile.classList.remove('face-down');
   tile.classList.add('revealed');
   if (r.reversed) tile.classList.add('rune-reversed');
@@ -1855,6 +1898,14 @@ function renderMinigames() {
   if (activeMiniGame) { _renderActiveMiniGame(); return; }
   document.getElementById('minigames-content').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:8px;max-width:380px">
+      <div class="mg-card" onclick="openMiniGame('oracle')">
+        <div class="mg-card-icon">☽</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Оракул дня</div>
+          <div class="mg-card-desc">Один сигнал в сутки · таро, руны, футарк</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
       <div class="mg-card" onclick="openMiniGame('dice')">
         <div class="mg-card-icon">💎</div>
         <div class="mg-card-info">
@@ -1915,6 +1966,7 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'dice')   body = renderDiceSection();
   if (activeMiniGame === 'bones')  body = renderBonesSection();
   if (activeMiniGame === 'sphere') body = renderSphereSection();
+  if (activeMiniGame === 'oracle') body = renderOracleSection();
   if (activeMiniGame === 'tarot')  body = renderTarotSection();
   if (activeMiniGame === 'runes')  body = renderRunesSection();
   if (activeMiniGame === 'norse')  body = renderNorseRunesSection();
@@ -2328,6 +2380,301 @@ function rollSphere() {
 //     ctx.globalAlpha=1;ctx.fillStyle=isMe?cAccent:cText;ctx.fillText(nick,vx,vy+3);
 //   });
 // }
+
+// ===== ОРАКУЛ ДНЯ =====
+function renderOracleSection() {
+  const now = Date.now();
+  const oracle = ME.oracle;
+  const isStale = !oracle || (now - oracle.ts) >= 86400000;
+
+  if (isStale) {
+    const type = ['tarot','slavic','norse'][Math.floor(Math.random()*3)];
+    let card;
+    if (type==='tarot') {
+      const deck=[...TAROT_CARDS,{...CHAOS_CARD}];
+      card={...deck[Math.floor(Math.random()*deck.length)]};
+    } else if (type==='slavic') {
+      card={...SLAVIC_RUNES[Math.floor(Math.random()*SLAVIC_RUNES.length)]};
+    } else {
+      card={...NORSE_RUNES[Math.floor(Math.random()*NORSE_RUNES.length)]};
+    }
+    card.reversed = Math.random()<0.35;
+    ME.oracle = {ts:now, type, card};
+    updateUser(ME); save();
+  }
+
+  const o = ME.oracle;
+  const c = o.card;
+  const left = Math.max(0, 86400000-(now-o.ts));
+  const hLeft = Math.floor(left/3600000);
+  const mLeft = Math.floor((left%3600000)/60000);
+  const typeLabel = {tarot:'🃏 Таро', slavic:'ᚱ Слав. руны', norse:'ᚠ Футарк'}[o.type]||'';
+  const sym = c.svg
+    ? c.svg
+    : `<span style="font-size:28px">${c.sym||c.id||'?'}</span>`;
+
+  return `<div class="profile-section">
+    <div class="profile-section-title">☽ ОРАКУЛ ДНЯ</div>
+    <div style="color:var(--textd);font-size:9px;margin-bottom:12px;letter-spacing:1px">
+      ОБНОВЛЕНИЕ ЧЕРЕЗ: <span style="color:var(--accent2)">${hLeft}ч ${mLeft}м</span>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      <div style="text-align:center;min-width:80px">
+        <div style="font-size:8px;letter-spacing:2px;color:var(--textd);margin-bottom:6px">${typeLabel}</div>
+        <div style="width:72px;height:92px;border:1px solid var(--borderg);background:${c.col||'var(--panel)'};
+            display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+            box-shadow:0 0 12px var(--borderg);${c.reversed?'transform:rotate(180deg)':''}">
+          ${sym}
+          <div style="font-size:8px;color:var(--text);text-align:center;padding:0 3px;${c.reversed?'transform:rotate(180deg)':''}">${c.name}</div>
+        </div>
+        ${c.reversed?'<div style="font-size:8px;color:var(--cursec);margin-top:3px">⊗ перевёрнута</div>':''}
+      </div>
+      <div style="flex:1;min-width:160px">
+        <div style="color:var(--accent2);font-size:11px;font-weight:bold;margin-bottom:6px">${c.name}</div>
+        <div style="font-size:10px;line-height:1.7;color:var(--text)">
+          ${c.reversed
+            ? `<span style="color:var(--cursec)">⊗ ${c.rx}</span>`
+            : `⟡ ${c.up}`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== ГРУППОВЫЕ ЧАТЫ =====
+let curGroupId = null;
+
+function renderGroupChats() {
+  const el = document.getElementById('group-dialogs-list');
+  if (!el) return;
+  const groups = (DB.groupChats||[]).filter(g=>(g.members||[]).includes(ME.name));
+  if (!groups.length) {
+    el.innerHTML='<div style="color:var(--textd);font-size:9px;padding:6px 8px">Нет групп. Создайте или вступите.</div>';
+    return;
+  }
+  el.innerHTML = groups.map(g=>{
+    const last=(g.messages||[]).slice(-1)[0];
+    return `<div class="chat-item${curGroupId===g.id?' active':''}" onclick="openGroupChat('${g.id}')">
+      <div class="comment-avatar" style="font-size:11px">⟡</div>
+      <div style="flex:1;min-width:0">
+        <div class="chat-name">${escapeHtml(g.name)}</div>
+        <div class="chat-preview">${last?escapeHtml(last.body.substring(0,30)):'...'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openGroupChat(id) {
+  curGroupId = id;
+  const g = (DB.groupChats||[]).find(x=>x.id===id);
+  if (!g) return;
+  document.getElementById('group-chat-empty').style.display = 'none';
+  document.getElementById('group-chat-active').style.display = 'block';
+  document.getElementById('group-chat-title').textContent = '⟡ '+g.name+' ('+g.members.length+')';
+  const joinBtn = document.getElementById('group-join-btn');
+  const isMember = g.members.includes(ME.name);
+  joinBtn.textContent = isMember ? 'Покинуть' : '+ Вступить';
+  joinBtn.className = 'btn sm'+(isMember?' danger':'');
+  renderGroupMessages();
+  renderGroupChats();
+}
+
+function closeGroupChat() {
+  curGroupId = null;
+  document.getElementById('group-chat-empty').style.display = 'block';
+  document.getElementById('group-chat-active').style.display = 'none';
+}
+
+function renderGroupMessages() {
+  const el = document.getElementById('group-messages-area');
+  if (!el||!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  const msgs = g.messages||[];
+  el.innerHTML = msgs.map(m=>`
+    <div class="msg ${m.from===ME.name?'mine':'theirs'}">
+      <div class="msg-author">${m.from} · ${timeAgo(m.ts)}</div>${escapeHtml(m.body)}
+    </div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function sendGroupMsg() {
+  const inp = document.getElementById('group-msg-input');
+  const body = inp ? inp.value.trim() : '';
+  if (!body||!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  if (!(g.members||[]).includes(ME.name)) { toast('⚠ Вступите в группу, чтобы писать.'); return; }
+  if (!g.messages) g.messages=[];
+  g.messages.push({id:uid(), from:ME.name, body, ts:Date.now()});
+  save(); inp.value='';
+  renderGroupMessages(); renderGroupChats();
+}
+
+function toggleJoinGroup() {
+  if (!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  if (!g.members) g.members=[];
+  const idx = g.members.indexOf(ME.name);
+  if (idx>-1) { g.members.splice(idx,1); toast('Вы покинули группу.'); }
+  else { g.members.push(ME.name); toast('Вы вступили в группу.'); }
+  save(); openGroupChat(curGroupId);
+}
+
+function openCreateGroup() {
+  document.getElementById('modal-create-group').classList.add('open');
+}
+
+function createGroup() {
+  const name = document.getElementById('cg-name').value.trim();
+  const desc = document.getElementById('cg-desc').value.trim();
+  if (!name) { toast('Введите название группы.'); return; }
+  if (!DB.groupChats) DB.groupChats=[];
+  const g = {id:uid(), name, desc, creator:ME.name, members:[ME.name], messages:[], ts:Date.now()};
+  DB.groupChats.push(g);
+  save(); closeModal('modal-create-group');
+  document.getElementById('cg-name').value='';
+  document.getElementById('cg-desc').value='';
+  renderGroupChats();
+  renderAllGroups();
+  toast('Группа создана.');
+  openGroupChat(g.id);
+}
+
+function toggleGroupInvite() {
+  const panel = document.getElementById('group-invite-panel');
+  if (!panel) return;
+  const visible = panel.style.display !== 'none';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    const inp = document.getElementById('group-invite-input');
+    if (inp) { inp.value = ''; inp.focus(); }
+    document.getElementById('group-invite-results').innerHTML = '';
+  }
+}
+
+function searchGroupInvite() {
+  const q = (document.getElementById('group-invite-input')||{}).value.trim().toLowerCase();
+  const el = document.getElementById('group-invite-results');
+  if (!el) return;
+  if (!q) { el.innerHTML = ''; return; }
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  const already = g ? (g.members||[]) : [];
+  const results = DB.users.filter(u =>
+    u.name !== ME.name &&
+    u.name.toLowerCase().includes(q) &&
+    !already.includes(u.name)
+  ).slice(0,6);
+  if (!results.length) {
+    el.innerHTML = '<div style="color:var(--textd);font-size:9px;padding:3px">Не найдено или уже в группе</div>';
+    return;
+  }
+  el.innerHTML = results.map(u => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px">${u.avatar||'?'} ${escapeHtml(u.name)}</span>
+      <button class="btn sm primary" style="font-size:8px;padding:1px 6px" onclick="inviteToGroup('${u.name}')">+ Добавить</button>
+    </div>`).join('');
+}
+
+function inviteToGroup(userName) {
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  if (!g.members) g.members = [];
+  if (g.members.includes(userName)) { toast('Уже в группе.'); return; }
+  g.members.push(userName);
+  // системное сообщение
+  if (!g.messages) g.messages = [];
+  g.messages.push({id:uid(), from:'⟡ Система', body:`${userName} добавлен в группу`, ts:Date.now()});
+  save();
+  toast(`${userName} добавлен в группу.`);
+  toggleGroupInvite();
+  openGroupChat(curGroupId);
+}
+
+function openGroupMembers() {
+  if (!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  const isCreator = g.creator === ME.name || isAdmin();
+  const el = document.getElementById('group-members-list');
+  if (el) {
+    el.innerHTML = (g.members||[]).map(name => {
+      const u = DB.users.find(x=>x.name===name)||{avatar:'?'};
+      const canKick = isCreator && name !== ME.name;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px">${u.avatar||'?'}</span>
+        <span style="flex:1;font-size:10px;color:var(--text)">${escapeHtml(name)}${name===g.creator?' <span style="color:var(--textd);font-size:8px">[создатель]</span>':''}</span>
+        ${canKick?`<button class="btn sm danger" style="font-size:8px;padding:1px 5px" onclick="kickFromGroup('${name}')">✕</button>`:''}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('invite-search').value = '';
+  document.getElementById('invite-results').innerHTML = '';
+  document.getElementById('modal-group-members').classList.add('open');
+}
+
+function searchInviteUser() {
+  if (!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  const q = (document.getElementById('invite-search').value||'').trim().toLowerCase();
+  const el = document.getElementById('invite-results');
+  if (!q) { el.innerHTML=''; return; }
+  const already = g ? (g.members||[]) : [];
+  const results = DB.users.filter(u =>
+    u.name.toLowerCase().includes(q) && !already.includes(u.name)
+  ).slice(0,6);
+  if (!results.length) { el.innerHTML='<div style="color:var(--textd);font-size:9px;padding:4px">Не найдено</div>'; return; }
+  el.innerHTML = results.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${u.avatar||'?'}</span>
+      <span style="flex:1;font-size:10px;color:var(--text)">${escapeHtml(u.name)}</span>
+      <button class="btn sm primary" style="font-size:8px;padding:1px 6px" onclick="addToGroup('${u.name}')">+ пригласить</button>
+    </div>`).join('');
+}
+
+function addToGroup(name) {
+  if (!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g) return;
+  if (!g.members) g.members=[];
+  if (g.members.includes(name)) { toast('Уже состоит в группе.'); return; }
+  g.members.push(name);
+  save();
+  toast(`${name} добавлен в группу.`);
+  openGroupMembers();
+  openGroupChat(curGroupId);
+}
+
+function kickFromGroup(name) {
+  if (!curGroupId) return;
+  const g = (DB.groupChats||[]).find(x=>x.id===curGroupId);
+  if (!g || (g.creator!==ME.name && !isAdmin())) return;
+  g.members = g.members.filter(m=>m!==name);
+  save();
+  toast(`${name} удалён из группы.`);
+  openGroupMembers();
+  openGroupChat(curGroupId);
+}
+
+function toggleGroupInvite() { openGroupMembers(); }
+
+function renderAllGroups() {
+  const el = document.getElementById('all-groups-list');
+  if (!el) return;
+  const all = DB.groupChats||[];
+  if (!all.length) { el.innerHTML='<div style="color:var(--textd);font-size:9px;padding:4px 0">Нет групп</div>'; return; }
+  el.innerHTML = all.map(g=>{
+    const isMember = (g.members||[]).includes(ME.name);
+    return `<div class="chat-item" onclick="openGroupChat('${g.id}')">
+      <div class="comment-avatar" style="font-size:11px">⟡</div>
+      <div style="flex:1;min-width:0">
+        <div class="chat-name">${escapeHtml(g.name)}</div>
+        <div class="chat-preview">${g.desc||'Без описания'} · ${g.members.length} участников ${isMember?'· <span style="color:var(--resonc)">вы состоите</span>':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ===== UTILS =====
 function uid() { return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
