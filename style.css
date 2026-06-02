@@ -782,6 +782,97 @@ body.theme-terminal .btn.primary { background:#161400; border-color:#333300; fon
 body.theme-terminal .btn.primary:hover { background:#221a00; border-color:var(--accent); }
 body.theme-terminal * { font-family: 'Courier New', Courier, monospace !important; }
 
+/* ===== ТАРО — РАСКЛАДЫ ===== */
+
+/* ПОДКОВА: ∩-образная форма — карты идут по дуге */
+/*
+  [1]  .  [7]
+  [2]  .  [6]
+  [3] [4] [5]
+*/
+.tarot-horseshoe {
+  display: grid !important;
+  grid-template-columns: repeat(3, 98px);
+  grid-template-rows: repeat(3, auto);
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.tarot-horseshoe .tarot-card-wrap:nth-child(1) { grid-area:1/1; } /* Прошлое      ↖ */
+.tarot-horseshoe .tarot-card-wrap:nth-child(2) { grid-area:2/1; } /* Настоящее    ← */
+.tarot-horseshoe .tarot-card-wrap:nth-child(3) { grid-area:3/1; } /* Скрытые силы ↙ */
+.tarot-horseshoe .tarot-card-wrap:nth-child(4) { grid-area:3/2; } /* Препятствие  ↓ */
+.tarot-horseshoe .tarot-card-wrap:nth-child(5) { grid-area:3/3; } /* Окружение    ↘ */
+.tarot-horseshoe .tarot-card-wrap:nth-child(6) { grid-area:2/3; } /* Что делать   → */
+.tarot-horseshoe .tarot-card-wrap:nth-child(7) { grid-area:1/3; } /* Итог         ↗ */
+
+/* КЕЛЬТСКИЙ КРЕСТ
+  Колонки: [лево] [центр] [право] [gap] [штаб]
+  Ряды:    [корона/итог] [прош/ситуация/буд/надежды] [пересеч/окружение] [основа/позиция]
+
+       col1      col2     col3     .    col5
+  r1:           [Корона]                [Итог]
+  r2: [Прошлое][Ситуация][Будущее]     [Надежды]
+  r3:           [Пересеч]              [Окружение]
+  r4:           [Основа]               [Позиция]
+*/
+.tarot-cross {
+  display: grid !important;
+  grid-template-columns: 98px 148px 98px 24px 98px;
+  grid-template-rows: repeat(4, auto);
+  gap: 10px;
+  width: fit-content;
+  align-items: start;
+  margin: 0 auto;
+}
+/* Центральная колонка — justify-self:center выравнивает 98px-карты по середине 148px-ячейки */
+.tarot-cross .tarot-card-wrap:nth-child(1)  { grid-area:2/2; justify-self:center; }
+/* align-self:end — боковая карта прижата к нижней, минимизируя зазор */
+.tarot-cross .tarot-card-wrap:nth-child(2)  { grid-area:3/2; align-self:end; }
+.tarot-cross .tarot-card-wrap:nth-child(3)  { grid-area:4/2; justify-self:center; }
+.tarot-cross .tarot-card-wrap:nth-child(4)  { grid-area:2/1; }
+.tarot-cross .tarot-card-wrap:nth-child(5)  { grid-area:1/2; justify-self:center; }
+.tarot-cross .tarot-card-wrap:nth-child(6)  { grid-area:2/3; }
+.tarot-cross .tarot-card-wrap:nth-child(7)  { grid-area:4/5; }
+.tarot-cross .tarot-card-wrap:nth-child(8)  { grid-area:3/5; }
+.tarot-cross .tarot-card-wrap:nth-child(9)  { grid-area:2/5; }
+.tarot-cross .tarot-card-wrap:nth-child(10) { grid-area:1/5; }
+
+/* Карта Пересечения — полный размер, лежит на боку */
+.tarot-cross .tarot-card-wrap:nth-child(2) {
+  width: 148px;
+  height: 130px;   /* 90px карта + ~35px под лейбл */
+  position: relative;
+  overflow: visible;
+}
+/* top: -35px — карта чуть выше, центр визуально на 35px */
+.tarot-cross .tarot-card-wrap:nth-child(2) .tarot-card {
+  position: absolute;
+  left: 29px;
+  top: -35px;
+  transform: rotate(90deg);
+}
+.tarot-cross .tarot-card-wrap:nth-child(2) .tarot-card.flipped {
+  position: absolute;
+  left: 29px;
+  top: -35px;
+  transform: rotate(90deg) rotateY(180deg);
+}
+.tarot-cross .tarot-card-wrap:nth-child(2) .tarot-card.reversed .tarot-front { transform: rotateY(180deg) rotate(180deg); }
+/* Лейбл прибит к низу wrap'а — всегда под картой */
+.tarot-cross .tarot-card-wrap:nth-child(2) .tarot-position-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+/* ===== ЧАТ — ВКЛАДКИ ===== */
+.chat-tab-btn { font-size:9px !important; padding:2px 8px !important; }
+.chat-tab-btn.active { background:var(--accent) !important; color:#000 !important; border-color:var(--accent) !important; }
+#group-chat-window { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+
 /* ===== САМОЦВЕТЫ (DICE) ===== */
 .dice-section { margin-top:16px; }
 .dice-types { display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
@@ -962,3 +1053,79 @@ body.theme-light .sphere-orb, body.theme-xp .sphere-orb {
 .rune-meaning-block { padding:8px; border:1px solid var(--border); background:var(--panel); font-size:10px; line-height:1.6; }
 .rune-meaning-title { font-weight:bold; color:var(--accent2); font-size:9px; letter-spacing:1px; margin-bottom:4px; }
 .rune-meaning-rev { color:var(--cursec); font-style:italic; }
+
+/* ===== ДЕРЕВО ЖИЗНИ (Tree of Life) =====
+  Сефирот — 3 колонки × 7 рядов:
+       [1 Кетер]
+  [3 Бина] [2 Хокма]
+  [5 Гебура][4 Хесед]
+       [6 Тиферет]
+  [8 Ход]  [7 Нецах]
+       [9 Йесод]
+       [10 Малкут]
+*/
+.tarot-tree {
+  display: grid !important;
+  grid-template-columns: 98px 98px 98px;
+  grid-template-rows: repeat(7, auto);
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.tarot-tree .tarot-card-wrap:nth-child(1)  { grid-area:1/2; justify-self:center; } /* Кетер    — верх центр */
+.tarot-tree .tarot-card-wrap:nth-child(2)  { grid-area:2/3; }                      /* Хокма    — правый верх */
+.tarot-tree .tarot-card-wrap:nth-child(3)  { grid-area:2/1; }                      /* Бина     — левый верх */
+.tarot-tree .tarot-card-wrap:nth-child(4)  { grid-area:3/3; }                      /* Хесед    — правый */
+.tarot-tree .tarot-card-wrap:nth-child(5)  { grid-area:3/1; }                      /* Гебура   — левый */
+.tarot-tree .tarot-card-wrap:nth-child(6)  { grid-area:4/2; justify-self:center; } /* Тиферет  — центр */
+.tarot-tree .tarot-card-wrap:nth-child(7)  { grid-area:5/3; }                      /* Нецах    — правый низ */
+.tarot-tree .tarot-card-wrap:nth-child(8)  { grid-area:5/1; }                      /* Ход      — левый низ */
+.tarot-tree .tarot-card-wrap:nth-child(9)  { grid-area:6/2; justify-self:center; } /* Йесод    — центр низ */
+.tarot-tree .tarot-card-wrap:nth-child(10) { grid-area:7/2; justify-self:center; } /* Малкут   — самый низ */
+
+/* ===== ПОДПИСИ ПОЗИЦИЙ ТАРО ===== */
+.tarot-position-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--accent2);
+  text-align: center;
+  margin-top: 5px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px var(--accent);
+  white-space: nowrap;
+}
+
+/* ===== FONT SCALE (+2px глобально) ===== */
+body                          { font-size: 13px; }
+input, textarea, select       { font-size: 13px !important; }
+.post-body                    { font-size: 13px !important; }
+.comment-body                 { font-size: 12px !important; }
+.msg                          { font-size: 13px !important; }
+.msg-author                   { font-size: 11px !important; }
+.forum-desc                   { font-size: 12px !important; }
+.forum-meta                   { font-size: 11px !important; }
+.win-title-txt                { font-size: 13px !important; }
+.nav-tab                      { font-size: 13px !important; }
+.chat-name                    { font-size: 12px !important; }
+.chat-preview                 { font-size: 11px !important; }
+.sb-title                     { font-size: 11px !important; }
+.sb-row                       { font-size: 12px !important; }
+.user-card-name               { font-size: 14px !important; }
+.level-badge-lg               { font-size: 12px !important; }
+.user-card-status             { font-size: 12px !important; }
+.post-author                  { font-size: 13px !important; }
+.post-time                    { font-size: 11px !important; }
+.profile-section-title        { font-size: 11px !important; }
+.comment-author               { font-size: 12px !important; }
+.comment-meta                 { font-size: 10px !important; }
+.act                          { font-size: 11px !important; }
+.btn                          { font-size: 12px !important; }
+.field label                  { font-size: 11px !important; }
+.mg-card-name                 { font-size: 13px !important; }
+.mg-card-desc                 { font-size: 11px !important; }
+.tarot-front-name             { font-size: 10px !important; }
+.rune-meaning-block           { font-size: 12px !important; }
+.rune-meaning-title           { font-size: 11px !important; }
+.tarot-desc                   { font-size: 12px !important; }
+.bones-desc                   { font-size: 12px !important; }
+.bones-name                   { font-size: 13px !important; }
