@@ -274,8 +274,16 @@
   <!-- ===== CHATS ===== -->
   <div id="page-chats" class="page">
     <div class="win">
-      <div class="win-title"><span class="win-title-txt">✉ Личные Чаты</span></div>
-      <div class="chat-layout">
+      <div class="win-title">
+        <span class="win-title-txt">✉ Чаты</span>
+        <div style="display:flex;gap:4px;margin-left:auto;margin-right:6px">
+          <button class="btn sm chat-tab-btn active" id="tab-dm" onclick="switchChatTab('dm')">Личные</button>
+          <button class="btn sm chat-tab-btn" id="tab-group" onclick="switchChatTab('group')">Группы</button>
+        </div>
+      </div>
+
+      <!-- Личные чаты -->
+      <div id="chat-tab-dm" class="chat-layout">
         <div class="chat-list" id="chat-list-panel">
           <div style="padding:6px;border-bottom:1px solid var(--border)">
             <input id="chat-search" placeholder="Найти пользователя..." oninput="searchChatUser()" style="font-size:10px;padding:3px 5px">
@@ -300,6 +308,77 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Групповые чаты -->
+      <div id="chat-tab-group" class="chat-layout" style="display:none">
+        <div class="chat-list">
+          <div style="padding:6px;border-bottom:1px solid var(--border);display:flex;gap:4px">
+            <button class="btn sm primary" style="flex:1;font-size:9px" onclick="openCreateGroup()">+ Создать группу</button>
+          </div>
+          <div style="padding:4px 0">
+            <div class="sb-title" style="padding:0 8px 4px">МОИ ГРУППЫ</div>
+            <div id="group-dialogs-list"></div>
+          </div>
+          <div style="padding:4px 0;border-top:1px solid var(--border);margin-top:4px">
+            <div class="sb-title" style="padding:0 8px 4px">ВСЕ ГРУППЫ</div>
+            <div id="all-groups-list"></div>
+          </div>
+        </div>
+        <div id="group-chat-window">
+          <div class="empty-state" id="group-chat-empty">Выберите группу или создайте новую</div>
+          <div id="group-chat-active" style="display:none">
+            <div class="win-title" style="background:var(--panel)">
+              <span class="win-title-txt" id="group-chat-title"></span>
+              <div class="wbtns" style="display:flex;align-items:center;gap:4px">
+                <button class="btn sm" id="group-join-btn" onclick="toggleJoinGroup()" style="font-size:9px">Вступить</button>
+                <button class="btn sm" onclick="toggleGroupInvite()" style="font-size:9px" title="Пригласить участника">+ участник</button>
+                <div class="wbtn x" onclick="closeGroupChat()">✕</div>
+              </div>
+            </div>
+            <div id="group-invite-panel" style="display:none;padding:6px 8px;border-bottom:1px solid var(--border);background:var(--panel)">
+              <div style="display:flex;gap:4px">
+                <input id="group-invite-input" placeholder="Имя пользователя..." style="flex:1;font-size:10px;padding:3px 5px" oninput="searchGroupInvite()">
+                <button class="btn sm danger" onclick="toggleGroupInvite()">✕</button>
+              </div>
+              <div id="group-invite-results" style="margin-top:4px"></div>
+            </div>
+            <div class="messages-area" id="group-messages-area"></div>
+            <div class="msg-input-row">
+              <input id="group-msg-input" placeholder="Сообщение в группу..." onkeydown="if(event.key==='Enter')sendGroupMsg()" style="flex:1;font-size:10px;padding:3px 5px">
+              <button class="btn primary sm" onclick="sendGroupMsg()">⟡</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал участников группы -->
+  <div class="modal-bg" id="modal-group-members">
+    <div class="win modal-win">
+      <div class="win-title"><span class="win-title-txt">👥 Участники группы</span><div class="wbtns"><div class="wbtn x" onclick="closeModal('modal-group-members')">✕</div></div></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div id="group-members-list" style="max-height:200px;overflow-y:auto;margin-bottom:8px"></div>
+        <div style="border-top:1px solid var(--border);padding-top:8px">
+          <div class="sb-title" style="margin-bottom:6px">ПРИГЛАСИТЬ</div>
+          <div style="display:flex;gap:6px">
+            <input id="invite-search" placeholder="Поиск пользователя..." oninput="searchInviteUser()" style="flex:1;font-size:10px;padding:3px 6px">
+          </div>
+          <div id="invite-results" style="margin-top:4px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал создания группы -->
+  <div class="modal-bg" id="modal-create-group">
+    <div class="win modal-win">
+      <div class="win-title"><span class="win-title-txt">⟡ Создать группу</span><div class="wbtns"><div class="wbtn x" onclick="closeModal('modal-create-group')">✕</div></div></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div class="field"><label>НАЗВАНИЕ</label><input id="cg-name" placeholder="Название группы"></div>
+        <div class="field"><label>ОПИСАНИЕ</label><input id="cg-desc" placeholder="О чём эта группа..."></div>
+        <button class="btn primary" onclick="createGroup()">Создать</button>
       </div>
     </div>
   </div>
