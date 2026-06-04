@@ -1014,10 +1014,10 @@ body.theme-light .sphere-orb, body.theme-xp .sphere-orb {
 .tarot-back-sym { font-size:28px; color:#4a0088; text-shadow:0 0 8px #9900cc; }
 .tarot-front { transform:rotateY(180deg); flex-direction:column; justify-content:space-between; text-align:center; }
 .tarot-card.reversed .tarot-front { transform:rotateY(180deg) rotate(180deg); }
-.tarot-front-num { font-size:8px; color:var(--textd); letter-spacing:1px; }
-.tarot-front-sym { font-size:24px; line-height:1; margin:4px 0; }
-.tarot-front-name { font-size:9px; font-weight:bold; color:var(--accent2); line-height:1.2; }
-.tarot-front-suit { font-size:7px; color:var(--textd); margin-top:2px; }
+.tarot-front-num { font-size:8px; color:rgba(255,255,255,0.5); letter-spacing:1px; }
+.tarot-front-sym { font-size:24px; line-height:1; margin:4px 0; color:#fff; }
+.tarot-front-name { font-size:9px; font-weight:bold; color:#e8ccff; line-height:1.2; }
+.tarot-front-suit { font-size:7px; color:rgba(255,255,255,0.45); margin-top:2px; }
 .tarot-desc {
   margin-top:12px; padding:10px; border:1px solid var(--border);
   background:var(--panel); font-size:10px; line-height:1.7; min-height:60px;
@@ -1083,6 +1083,70 @@ body.theme-light .sphere-orb, body.theme-xp .sphere-orb {
 .tarot-tree .tarot-card-wrap:nth-child(9)  { grid-area:6/2; justify-self:center; } /* Йесод    — центр низ */
 .tarot-tree .tarot-card-wrap:nth-child(10) { grid-area:7/2; justify-self:center; } /* Малкут   — самый низ */
 
+/* ===== РАСКЛАД ЗВЕЗДА (9 карт, 3×3) =====
+  [5] [1] [6]
+  [3] [S] [4]
+  [7] [2] [8]
+  S=индекс 0 (Сигнификатор), 1-8 вокруг
+*/
+.tarot-star {
+  display: grid !important;
+  grid-template-columns: repeat(3, 98px);
+  grid-template-rows: repeat(3, auto);
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.tarot-star .tarot-card-wrap:nth-child(1) { grid-area:2/2; } /* S — центр */
+.tarot-star .tarot-card-wrap:nth-child(2) { grid-area:1/2; } /* 1 — верх */
+.tarot-star .tarot-card-wrap:nth-child(3) { grid-area:3/2; } /* 2 — низ */
+.tarot-star .tarot-card-wrap:nth-child(4) { grid-area:2/1; } /* 3 — лево */
+.tarot-star .tarot-card-wrap:nth-child(5) { grid-area:2/3; } /* 4 — право */
+.tarot-star .tarot-card-wrap:nth-child(6) { grid-area:1/1; } /* 5 — верх-лево */
+.tarot-star .tarot-card-wrap:nth-child(7) { grid-area:1/3; } /* 6 — верх-право */
+.tarot-star .tarot-card-wrap:nth-child(8) { grid-area:3/1; } /* 7 — низ-лево */
+.tarot-star .tarot-card-wrap:nth-child(9) { grid-area:3/3; } /* 8 — низ-право */
+
+/* ===== РАСКЛАД КРЕСТ (КАРТОМАНТИЯ, 5 карт) =====
+     [2]
+  [3][1][4]
+     [5]
+*/
+.play-cross {
+  display: grid !important;
+  grid-template-columns: repeat(3, 98px);
+  grid-template-rows: repeat(3, auto);
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.play-cross .tarot-card-wrap:nth-child(1) { grid-area:2/2; } /* Ты — центр */
+.play-cross .tarot-card-wrap:nth-child(2) { grid-area:1/2; } /* Вызов — верх */
+.play-cross .tarot-card-wrap:nth-child(3) { grid-area:2/1; } /* Прошлое — лево */
+.play-cross .tarot-card-wrap:nth-child(4) { grid-area:2/3; } /* Будущее — право */
+.play-cross .tarot-card-wrap:nth-child(5) { grid-area:3/2; } /* Итог — низ */
+
+/* ===== ЛЕНОРМАН ===== */
+/* Малое таблó: 3×3 */
+.len-square {
+  display: grid !important;
+  grid-template-columns: repeat(3, 98px);
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+/* Большое таблó: 9×4, мелкие карты */
+.len-tableau {
+  display: grid !important;
+  grid-template-columns: repeat(9, 50px);
+  gap: 4px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.len-small      { width:50px !important; }
+.len-small-card { width:50px !important; height:72px !important; }
+.len-small-card .tarot-back-sym { font-size:10px !important; }
+
 /* ===== ПОДПИСИ ПОЗИЦИЙ ТАРО ===== */
 .tarot-position-label {
   font-size: 11px;
@@ -1129,3 +1193,98 @@ input, textarea, select       { font-size: 13px !important; }
 .tarot-desc                   { font-size: 12px !important; }
 .bones-desc                   { font-size: 12px !important; }
 .bones-name                   { font-size: 13px !important; }
+
+/* ================================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ (≤ 600px)
+   Доступная ширина контента: ~318px (360px экран - padding/border)
+   ================================================================ */
+@media (max-width: 600px) {
+
+  /* --- Страница: меньше отступы --- */
+  .page { padding: 4px !important; }
+
+  /* --- Навигация --- */
+  #nav { padding: 3px 4px; gap: 2px; }
+  .nav-tab { padding: 3px 7px !important; font-size: 10px !important; }
+  .nav-right { font-size: 9px; gap: 4px; }
+
+  /* --- Карты таро: 90×140 → 60×95 --- */
+  .tarot-card-wrap { width: 60px !important; perspective: 400px; }
+  .tarot-card      { width: 60px !important; height: 95px !important; }
+  .tarot-back-sym  { font-size: 18px !important; }
+  .tarot-front-sym { font-size: 16px !important; }
+  .tarot-front-num { font-size: 7px !important; }
+  .tarot-front-name{ font-size: 7px !important; }
+  .tarot-front-suit{ font-size: 6px !important; }
+  .tarot-position-label { font-size: 8px !important; white-space: normal !important; line-height: 1.2; }
+
+  /* --- Три карты / одна / пять простых --- */
+  .tarot-spread { gap: 6px !important; }
+
+  /* --- Подкова (3 кол) --- */
+  .tarot-horseshoe { grid-template-columns: repeat(3, 60px) !important; gap: 6px !important; }
+
+  /* --- Звезда (3×3) --- */
+  .tarot-star { grid-template-columns: repeat(3, 60px) !important; gap: 6px !important; }
+
+  /* --- Дерево жизни (3 кол) --- */
+  .tarot-tree { grid-template-columns: repeat(3, 60px) !important; gap: 6px !important; }
+
+  /* --- Крест картомантии (3×3) --- */
+  .play-cross { grid-template-columns: repeat(3, 60px) !important; gap: 6px !important; }
+
+  /* --- Кельтский крест: пересчитываем под 60px карты ---
+       60 + 95 + 60 + 8 + 60 = 283px + 4×6gap = 307px — влезает!
+       Повёрнутая карта (60×95): кажется шириной 95px — в колонку 95px */
+  .tarot-cross {
+    grid-template-columns: 60px 95px 60px 8px 60px !important;
+    gap: 6px !important;
+  }
+  .tarot-cross .tarot-card-wrap:nth-child(2) {
+    width: 95px !important;
+    height: 87px !important;
+  }
+  .tarot-cross .tarot-card-wrap:nth-child(2) .tarot-card {
+    left: 18px !important;
+    top: -23px !important;
+  }
+  .tarot-cross .tarot-card-wrap:nth-child(2) .tarot-card.flipped {
+    left: 18px !important;
+    top: -23px !important;
+  }
+
+  /* --- Ленорман: малое 3×3 --- */
+  .len-square { grid-template-columns: repeat(3, 60px) !important; gap: 6px !important; }
+
+  /* --- Ленорман: большое таблó 9×4 — скролл по горизонтали ---
+       34px карты: 9×34 + 8×3gap = 306+24 = 330px — скролл всё равно нужен */
+  .len-tableau {
+    grid-template-columns: repeat(9, 34px) !important;
+    gap: 3px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .len-small      { width: 34px !important; }
+  .len-small-card { width: 34px !important; height: 50px !important; }
+  .len-small-card .tarot-front-sym { font-size: 10px !important; }
+  .len-small-card .tarot-front-name{ font-size: 5px !important; }
+  .len-small-card .tarot-back-sym  { font-size: 8px !important; }
+
+  /* --- Руны --- */
+  .rune-tile { width: 55px !important; height: 75px !important; font-size: 26px !important; }
+  .rune-tile.face-down { font-size: 16px !important; }
+  .rune-spread { gap: 8px !important; }
+
+  /* --- Контейнер мини-игры --- */
+  #minigames-content { padding: 8px !important; }
+
+  /* --- Карточки меню игр --- */
+  .mg-card { padding: 8px 10px !important; }
+  .mg-card-icon { font-size: 18px !important; }
+
+  /* --- Таблица натальной карты --- */
+  #natal-chart-area table { font-size: 10px !important; }
+
+  /* --- Общий контент win --- */
+  .win-title { padding: 3px 6px !important; }
+}
