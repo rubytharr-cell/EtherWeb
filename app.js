@@ -1373,7 +1373,7 @@ const SLAVIC_RUNES = [
    up:'Центр мира, равновесие, начало и конец всего. Ось бытия.',
    rx:'Дисбаланс, потеря центра, блуждание без опоры.'},
   {name:'Ветер',         sym:'⌂', col:'#00101a',
-   svg:'<svg viewBox="0 0 60 82" width="56" height="76" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="30" y1="4" x2="4" y2="28"/><line x1="30" y1="4" x2="56" y2="28"/><line x1="4" y1="28" x2="4" y2="78"/><line x1="56" y1="28" x2="56" y2="78"/></svg>',
+   svg:'<svg viewBox="0 0 60 82" width="30" height="42" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="30" y1="4" x2="4" y2="28"/><line x1="30" y1="4" x2="56" y2="28"/><line x1="4" y1="28" x2="4" y2="78"/><line x1="56" y1="28" x2="56" y2="78"/></svg>',
    up:'Дух, движение, перемены, воля богов. Не сопротивляйся потоку.',
    rx:'Застой, отрицание перемен, страх движения.'},
   {name:'Даждьбог',      sym:'ᚦ', col:'#1a1000',
@@ -1481,6 +1481,8 @@ function revealNorseRune(i) {
   const nameEl = document.getElementById(`nrname-${i}`);
   if (!tile) return;
   if (r.svg) { tile.innerHTML = r.svg; } else { tile.textContent = r.sym; }
+  tile.style.background = '';
+  tile.style.color = '';
   tile.classList.remove('face-down');
   tile.classList.add('revealed');
   if (r.reversed) tile.classList.add('rune-reversed');
@@ -1597,11 +1599,13 @@ const TAROT_SPREAD_LABELS = {
   7:  ['Прошлое','Настоящее','Скрытые силы','Препятствие','Окружение','Что делать','Итог'],
   // Кельтский крест: (0)центр, (1)пересечение, (2)прошлое, (3)корона, (4)будущее, (5)основа, (6-9)штаб
   10: ['Ситуация','Пересечение','Прошлое','Корона','Будущее','Основа','Позиция','Окружение','Надежды','Итог'],
+  // Звезда 9 карт: S=центр, 1=верх, 2=низ, 3=лево, 4=право, 5=верх-лево, 6=верх-право, 7=низ-лево, 8=низ-право
+  8:  ['Сигнификатор','Позитивное влияние','Негативное влияние','Ближние (в целом)','Противники (в целом)','Поддержка ближних','Влияние извне (+)','Давление ближних','Давление противников'],
   // Дерево Жизни (10 Сефирот): сверху вниз, поочерёдно правое/левое
   11: ['Кетер','Хокма','Бина','Хесед','Гебура','Тиферет','Нецах','Ход','Йесод','Малкут'],
 };
 const TAROT_SPREAD_NAMES = {
-  1:'Одна карта', 3:'Три карты', 7:'Подкова', 10:'Кельтский крест', 11:'Дерево Жизни'
+  1:'Одна карта', 3:'Три карты', 7:'Подкова', 8:'Звезда', 10:'Кельтский крест', 11:'Дерево Жизни'
 };
 
 function renderTarotSection() {
@@ -1618,10 +1622,11 @@ function renderTarotSection() {
     <div style="font-size:9px;color:var(--textd);margin-bottom:8px">${
       tarotMode===10?'10 карт · Кельтский крест — полный анализ ситуации':
       tarotMode===7 ?'7 карт · Подкова — прошлое, настоящее, путь вперёд':
+      tarotMode===8 ?'9 карт · Звезда — сигнификатор + 8 позиций влияния (по Татьяне Вереск)':
       tarotMode===11?'10 карт · Дерево Жизни (Каббала) — 10 сефирот, от Кетера до Малкута':''
     }</div>
     <button class="btn primary" onclick="drawTarot()" style="margin-bottom:8px">⟡ Вытянуть карты</button>
-    <div id="tarot-spread" class="tarot-spread${tarotMode===10?' tarot-cross':tarotMode===7?' tarot-horseshoe':tarotMode===11?' tarot-tree':''}"></div>
+    <div id="tarot-spread" class="tarot-spread${tarotMode===10?' tarot-cross':tarotMode===7?' tarot-horseshoe':tarotMode===11?' tarot-tree':tarotMode===8?' tarot-star':''}"></div>
     <div id="tarot-desc" class="tarot-desc" style="display:none"></div>
   </div>`;
 }
@@ -1647,7 +1652,7 @@ function drawTarot() {
   drawnCards = [];
   flippedCards = new Set();
 
-  const cardCount = tarotMode === 11 ? 10 : tarotMode;
+  const cardCount = {8:9, 11:10}[tarotMode] ?? tarotMode;
   for (let i = 0; i < cardCount; i++) {
     const idx = Math.floor(Math.random() * deck.length);
     const card = {...deck.splice(idx, 1)[0]};
@@ -1785,6 +1790,8 @@ function revealRune(i) {
   if (r.scaleY)   tileTransform += ` scaleY(${r.scaleY})`;
   if (r.scaleX)   tileTransform += ` scaleX(${r.scaleX})`;
   if (tileTransform) tile.style.transform = tileTransform.trim();
+  tile.style.background = '';
+  tile.style.color = '';
   tile.classList.remove('face-down');
   tile.classList.add('revealed');
   if (r.reversed) tile.classList.add('rune-reversed');
@@ -1897,7 +1904,15 @@ let activeMiniGame = null;
 function renderMinigames() {
   if (activeMiniGame) { _renderActiveMiniGame(); return; }
   document.getElementById('minigames-content').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:8px;max-width:380px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:680px">
+      <div class="mg-card" onclick="openMiniGame('natal')">
+        <div class="mg-card-icon">☿</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Натальная карта</div>
+          <div class="mg-card-desc">Планеты · знаки · аспекты · Asс · MC · бесплатно</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
       <div class="mg-card" onclick="openMiniGame('oracle')">
         <div class="mg-card-icon">☽</div>
         <div class="mg-card-info">
@@ -1954,6 +1969,32 @@ function renderMinigames() {
         </div>
         <div class="mg-card-arr">▶</div>
       </div>
+      <!-- Армонские руны временно скрыты
+      <div class="mg-card" onclick="openMiniGame('armanist')">
+        <div class="mg-card-icon">ᚷ</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Армонские руны</div>
+          <div class="mg-card-desc">18 рун Гвидо фон Листа · оккультный Арманизм</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      -->
+      <div class="mg-card" onclick="openMiniGame('playing')">
+        <div class="mg-card-icon">♠</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Картомантия</div>
+          <div class="mg-card-desc">54 карты · ♥ ♦ ♣ ♠ + 2 Джокера · гадание на картах</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      <div class="mg-card" onclick="openMiniGame('lenormand')">
+        <div class="mg-card-icon">🎴</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Ленорман</div>
+          <div class="mg-card-desc">36 карт · Большое таблó 9×4 · земной оракул</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
     </div>`;
 }
 
@@ -1966,10 +2007,14 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'dice')   body = renderDiceSection();
   if (activeMiniGame === 'bones')  body = renderBonesSection();
   if (activeMiniGame === 'sphere') body = renderSphereSection();
-  if (activeMiniGame === 'oracle') body = renderOracleSection();
-  if (activeMiniGame === 'tarot')  body = renderTarotSection();
-  if (activeMiniGame === 'runes')  body = renderRunesSection();
-  if (activeMiniGame === 'norse')  body = renderNorseRunesSection();
+  if (activeMiniGame === 'natal')     body = renderNatalSection();
+  if (activeMiniGame === 'oracle')    body = renderOracleSection();
+  if (activeMiniGame === 'tarot')    body = renderTarotSection();
+  if (activeMiniGame === 'runes')    body = renderRunesSection();
+  if (activeMiniGame === 'norse')    body = renderNorseRunesSection();
+  if (activeMiniGame === 'armanist') body = renderArmanistSection();
+  if (activeMiniGame === 'playing')  body = renderPlayingCardsSection();
+  if (activeMiniGame === 'lenormand')body = renderLenormandSection();
   document.getElementById('minigames-content').innerHTML = back + body;
 }
 
@@ -2388,15 +2433,19 @@ function renderOracleSection() {
   const isStale = !oracle || (now - oracle.ts) >= 86400000;
 
   if (isStale) {
-    const type = ['tarot','slavic','norse'][Math.floor(Math.random()*3)];
+    const type = ['tarot','slavic','norse','playing','lenormand'][Math.floor(Math.random()*5)];
     let card;
     if (type==='tarot') {
       const deck=[...TAROT_CARDS,{...CHAOS_CARD}];
       card={...deck[Math.floor(Math.random()*deck.length)]};
     } else if (type==='slavic') {
       card={...SLAVIC_RUNES[Math.floor(Math.random()*SLAVIC_RUNES.length)]};
-    } else {
+    } else if (type==='norse') {
       card={...NORSE_RUNES[Math.floor(Math.random()*NORSE_RUNES.length)]};
+    } else if (type==='playing') {
+      card={...PLAYING_CARDS[Math.floor(Math.random()*PLAYING_CARDS.length)]};
+    } else {
+      card={...LENORMAND_CARDS[Math.floor(Math.random()*LENORMAND_CARDS.length)]};
     }
     card.reversed = Math.random()<0.35;
     ME.oracle = {ts:now, type, card};
@@ -2408,7 +2457,7 @@ function renderOracleSection() {
   const left = Math.max(0, 86400000-(now-o.ts));
   const hLeft = Math.floor(left/3600000);
   const mLeft = Math.floor((left%3600000)/60000);
-  const typeLabel = {tarot:'🃏 Таро', slavic:'ᚱ Слав. руны', norse:'ᚠ Футарк'}[o.type]||'';
+  const typeLabel = {tarot:'🃏 Таро', slavic:'ᚱ Слав. руны', norse:'ᚠ Футарк', playing:'♠ Карты', lenormand:'🎴 Ленорман'}[o.type]||'';
   const sym = c.svg
     ? c.svg
     : `<span style="font-size:28px">${c.sym||c.id||'?'}</span>`;
@@ -2672,6 +2721,965 @@ function renderAllGroups() {
         <div class="chat-name">${escapeHtml(g.name)}</div>
         <div class="chat-preview">${g.desc||'Без описания'} · ${g.members.length} участников ${isMember?'· <span style="color:var(--resonc)">вы состоите</span>':''}</div>
       </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== РАСКЛАД ЗВЕЗДА (добавляем режим 8 к таро) =====
+// Уже обрабатывается через TAROT_SPREAD_LABELS[8] и .tarot-star CSS
+
+// ===== ИГРАЛЬНЫЕ КАРТЫ (54 карты) =====
+const _PC_S = [
+  {s:'hearts',  sym:'♥', col:'#200005', tc:'#ff4466'},
+  {s:'diamonds',sym:'♦', col:'#1a0a00', tc:'#ff8822'},
+  {s:'clubs',   sym:'♣', col:'#001a08', tc:'#44cc88'},
+  {s:'spades',  sym:'♠', col:'#0a0a18', tc:'#8899ff'},
+];
+const _PC_V = [
+  {v:'A',  n:'Туз'},
+  {v:'2',  n:'2'},   {v:'3', n:'3'},   {v:'4', n:'4'},
+  {v:'5',  n:'5'},   {v:'6', n:'6'},   {v:'7', n:'7'},
+  {v:'8',  n:'8'},   {v:'9', n:'9'},   {v:'10',n:'10'},
+  {v:'J',  n:'Валет'},{v:'Q',n:'Дама'},{v:'K', n:'Король'},
+];
+const _PC_UP = {
+  hearts:{
+    A:'Новое чувство, открытость сердца. Начало любви или исцеление через принятие.',
+    2:'Взаимная симпатия, союз двух. Отношения движутся вперёд.',
+    3:'Дружба, общий праздник, поддержка близких.',
+    4:'Момент покоя, цени то, что имеешь.',
+    5:'Утрата, но не всё потеряно — оглянись назад.',
+    6:'Воспоминания прошлого, связь с детством. Кто-то из прошлого возвращается.',
+    7:'Мечты и иллюзии. Выбери одно реальное желание.',
+    8:'Уход от прошлого ради большего. Больно, но необходимо.',
+    9:'Карта желаний — то, что хочешь, сбудется. Самое благоприятное знамение.',
+    10:'Счастье, семья, гармония в доме. Любовь достигает полноты.',
+    J:'Молодой человек с добрыми намерениями, приходит весть с любовью.',
+    Q:'Любящая, интуитивная женщина. Мудрость сердца.',
+    K:'Великодушный, эмоционально зрелый мужчина. Понимает, не судит.',
+  },
+  diamonds:{
+    A:'Финансовый старт, новая возможность. Действуй — дверь открыта.',
+    2:'Новость, послание, деловые переговоры. Жди информации.',
+    3:'Деловое партнёрство. Совместный проект принесёт плоды.',
+    4:'Накопление, разумная бережливость. Контроль над ресурсами.',
+    5:'Трудный период, беспокойство о деньгах. Но выход есть.',
+    6:'Щедрость, баланс давать и получать. Возвращается сторицей.',
+    7:'Урожай на подходе — немного терпения. Результаты близко.',
+    8:'Мастерство и профессионализм. Деньги через навык.',
+    9:'Самодостаточность, достигнутый своим трудом комфорт.',
+    10:'Финансовая стабильность, долгосрочный успех.',
+    J:'Практичный молодой человек с хорошими идеями для заработка.',
+    Q:'Деловая, независимая женщина. Умеет создавать достаток.',
+    K:'Щедрый успешный мужчина. Предприниматель, покровитель.',
+  },
+  clubs:{
+    A:'Творческий импульс, новая идея. Твоя воля запускает процесс.',
+    2:'Планирование, первые шаги. Смотри вперёд.',
+    3:'Первые плоды усилий, расширение. Результаты становятся видны.',
+    4:'Торжество, стабильность. Отдохни — ты заслужил.',
+    5:'Конкуренция, хаотичная энергия. Борьба закаляет.',
+    6:'Победа, признание, публичный успех. Твои заслуги видны.',
+    7:'Защита позиции, стойкость под давлением. Держи линию.',
+    8:'Быстрые события, ускорение. Действуй немедленно.',
+    9:'Последний рубеж. Финиш близко — держись.',
+    10:'Тяжёлая ноша ответственности. Несёшь много — но финиш виден.',
+    J:'Энергичный, любознательный молодой человек, полный идей.',
+    Q:'Харизматичная, уверенная женщина. Всё притягивает к себе.',
+    K:'Лидер, вдохновитель, мастер своего дела.',
+  },
+  spades:{
+    A:'Ясность истины, прорыв через иллюзии. Меч разрубает туман.',
+    2:'Тупик. Ты знаешь ответ — просто закрыл глаза.',
+    3:'Боль, предательство. Это пройдёт — и освободит.',
+    4:'Вынужденный отдых, восстановление. Остановись.',
+    5:'Конфликт, пиррова победа. Ты победил — но какой ценой?',
+    6:'Переход к спокойствию. Уходи от бури к тихой воде.',
+    7:'Хитрость, стратегия. Иногда тихо взять — правильно.',
+    8:'Ментальная ловушка. Ты сам сковал себя — и сам освободишься.',
+    9:'Тревога, ночные страхи. Страхи больше, чем реальность.',
+    10:'Окончательный конец. Но рассвет уже начинается.',
+    J:'Острый ум, наблюдательность, молодой человек с тайным знанием.',
+    Q:'Острый ум, независимость. Видит насквозь.',
+    K:'Власть, авторитет. Принимает решения без лишних эмоций.',
+  },
+};
+const _PC_RX = {
+  hearts:{A:'Подавленные чувства, разрыв.',2:'Дисбаланс в отношениях.',3:'Предательство среди близких.',4:'Апатия, упущенные возможности.',5:'Зацикленность на боли.',6:'Застревание в прошлом.',7:'Самообман, уход от реальности.',8:'Цепляние за мёртвое.',9:'Желания исполнены — но не те.',10:'Иллюзия счастья, разрыв.',J:'Незрелость, ветреность.',Q:'Манипуляция через жалость.',K:'Холодность под маской тепла.'},
+  diamonds:{A:'Упущенный шанс, потери.',2:'Задержка вестей, дезинформация.',3:'Конфликт интересов, нечестность.',4:'Скупость, страх потери.',5:'Принятие помощи как слабость.',6:'Долги, неравный обмен.',7:'Нетерпение, напрасный труд.',8:'Трудоголизм без смысла.',9:'Одиночество в достатке.',10:'Семейные конфликты из-за денег.',J:'Жадность, ненадёжность.',Q:'Расточительность, материализм.',K:'Коррупция, власть ради власти.'},
+  clubs:{A:'Нереализованный потенциал.',2:'Нерешительность, страх.',3:'Задержки, медленный рост.',4:'Нестабильность фундамента.',5:'Скрытая агрессия.',6:'Провал на виду.',7:'Сдача позиций.',8:'Спешка без результата.',9:'Хроническая усталость.',10:'Перегрузка, самопожертвование.',J:'Бесконечный старт без продолжения.',Q:'Ревность, эгоцентризм.',K:'Тирания, высокомерие.'},
+  spades:{A:'Жестокая правда без необходимости.',2:'Болезненное, но необходимое решение.',3:'Нежелание исцеляться.',4:'Тревожный покой.',5:'Принятие поражения с достоинством.',6:'Застревание в токсичной ситуации.',7:'Обман раскрыт.',8:'Освобождение, новая свобода.',9:'Выход из тревоги.',10:'Выживание, неожиданное спасение.',J:'Сплетни, слова без действий.',Q:'Холодность, изоляция.',K:'Холодный расчёт без сочувствия.'},
+};
+
+const PLAYING_CARDS = [];
+_PC_S.forEach(suit => {
+  _PC_V.forEach(val => {
+    PLAYING_CARDS.push({
+      id: val.v + suit.sym,
+      name: val.n + ' ' + {hearts:'Червей',diamonds:'Бубён',clubs:'Треф',spades:'Пик'}[suit.s],
+      suit: suit.s, sym: suit.sym, col: suit.col, tc: suit.tc,
+      up: _PC_UP[suit.s][val.v],
+      rx: _PC_RX[suit.s][val.v],
+    });
+  });
+});
+PLAYING_CARDS.push(
+  {id:'J1', name:'Красный Джокер', suit:'joker', sym:'🃏', col:'#1a0000', tc:'#ff4444',
+   up:'Дикая карта — правила сброшены. Неожиданный поворот меняет всё к лучшему. Вселенная вмешивается.',
+   rx:'Хаос без управления. Сила, которую невозможно удержать и направить.'},
+  {id:'J2', name:'Чёрный Джокер', suit:'joker', sym:'🃏', col:'#0a0a0a', tc:'#aaaaaa',
+   up:'Скрытый трикстер входит в игру. Тёмная сторона ломает сценарий — но это может быть шансом.',
+   rx:'Саботаж изнутри, нестабильность, разрушение выстроенного.'}
+);
+
+let playMode = 1;
+let drawnPlayCards = [];
+let flippedPlayCards = new Set();
+
+function renderPlayingCardsSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">♠ КАРТОМАНТИЯ · 54 КАРТЫ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:10px">54 карты · ♥ ♦ ♣ ♠ + 2 Джокера. Сосредоточься — тяни.</div>
+    <div class="tarot-mode-btns" style="margin-bottom:8px">
+      <button class="btn sm${playMode===1?' primary':''}" onclick="setPlayMode(1)">Одна карта</button>
+      <button class="btn sm${playMode===3?' primary':''}" onclick="setPlayMode(3)">Три карты</button>
+      <button class="btn sm${playMode===5?' primary':''}" onclick="setPlayMode(5)">Пять (крест)</button>
+    </div>
+    <button class="btn primary" onclick="drawPlayCards()" style="margin-bottom:8px">⟡ Тянуть</button>
+    <div id="play-spread" class="tarot-spread${playMode===5?' play-cross':''}"></div>
+    <div id="play-desc" class="tarot-desc" style="display:none"></div>
+  </div>`;
+}
+
+function setPlayMode(m) { playMode=m; _renderActiveMiniGame(); }
+
+function drawPlayCards() {
+  const deck = [...PLAYING_CARDS];
+  drawnPlayCards=[]; flippedPlayCards=new Set();
+  const count = playMode;
+  for(let i=0;i<count;i++){
+    const idx=Math.floor(Math.random()*deck.length);
+    const c={...deck.splice(idx,1)[0]};
+    c.reversed=Math.random()<0.3;
+    drawnPlayCards.push(c);
+  }
+  const labels3=['Прошлое','Настоящее','Будущее'];
+  const labels5=['Ты','Вызов','Прошлое','Будущее','Итог'];
+  const labels=playMode===3?labels3:playMode===5?labels5:[''];
+  const spread=document.getElementById('play-spread');
+  if(!spread) return;
+  spread.innerHTML=drawnPlayCards.map((c,i)=>{
+    const isCross=playMode===5;
+    return `<div class="tarot-card-wrap${isCross?' play-cross-card-'+i:''}" onclick="flipPlayCard(${i})">
+      <div class="tarot-card${c.reversed?' reversed':''}" id="pcard-${i}">
+        <div class="tarot-back" style="background:repeating-linear-gradient(45deg,#0a0015,#0a0015 4px,#100025 4px,#100025 8px)">
+          <div class="tarot-back-sym">✦</div>
+        </div>
+        <div class="tarot-front" style="background:${c.col};position:relative">
+          <div class="tarot-front-num" style="color:${c.tc}">${c.id}</div>
+          <div class="tarot-front-sym" style="color:${c.tc};font-size:28px">${c.sym}</div>
+          <div class="tarot-front-name" style="color:${c.tc}">${c.name}</div>
+          <div class="tarot-front-suit" style="color:${c.tc}66">${c.suit==='joker'?'Джокер':c.sym}${c.reversed?' · ⊗':''}</div>
+        </div>
+      </div>
+      ${labels[i]?`<div class="tarot-position-label">${labels[i]}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('play-desc').style.display='none';
+}
+
+function flipPlayCard(i) {
+  if(!drawnPlayCards[i]) return;
+  const el=document.getElementById(`pcard-${i}`);
+  if(!el) return;
+  el.classList.toggle('flipped');
+  if(el.classList.contains('flipped')) flippedPlayCards.add(i);
+  else flippedPlayCards.delete(i);
+  renderPlayDescriptions();
+}
+
+function renderPlayDescriptions() {
+  const desc=document.getElementById('play-desc');
+  if(!desc) return;
+  if(!flippedPlayCards.size){desc.style.display='none';return;}
+  const labels3=['Прошлое','Настоящее','Будущее'];
+  const labels5=['Ты','Вызов','Прошлое','Будущее','Итог'];
+  const labels=playMode===3?labels3:playMode===5?labels5:[''];
+  desc.style.display='block';
+  desc.innerHTML=[...flippedPlayCards].sort().map((i,idx,arr)=>{
+    const c=drawnPlayCards[i];
+    const label=labels[i]?`<div style="font-size:11px;font-weight:bold;color:${c.tc};letter-spacing:2px;margin-bottom:5px;text-shadow:0 0 6px ${c.tc}88">◈ ${labels[i]}</div>`:'';
+    const revTag=c.reversed?`<span style="color:var(--cursec);font-size:9px"> [перевёрнута]</span>`:'';
+    const meaning=c.reversed?`<span class="tarot-desc-rev">⊗ ${c.rx}</span>`:`⟡ ${c.up}`;
+    const sep=idx<arr.length-1?'border-bottom:1px dashed var(--border);margin-bottom:8px;padding-bottom:8px;':'';
+    return `<div style="${sep}">${label}<b style="color:${c.tc};font-size:14px">${c.name}</b>${revTag}<br><div style="margin-top:4px">${meaning}</div></div>`;
+  }).join('');
+}
+
+// ===== ЛЕНОРМАН (36 карт) =====
+const LENORMAND_CARDS = [
+  {id:1,  name:'Всадник',   sym:'↑',  col:'#001808', up:'Скорые новости, вести в пути. Жди — она уже летит к тебе.', rx:'Задержка вестей, плохая новость.'},
+  {id:2,  name:'Клевер',    sym:'✤',  col:'#001a05', up:'Малая удача, случайный шанс. Воспользуйся — такое не повторяется.', rx:'Невезение, упущенный шанс.'},
+  {id:3,  name:'Корабль',   sym:'▷',  col:'#001428', up:'Путешествие, торговля, движение вдаль. Ветер попутный.', rx:'Задержка пути, нежеланное путешествие.'},
+  {id:4,  name:'Дом',       sym:'⌂',  col:'#0a0800', up:'Дом, семья, безопасность. Твоя крепость и якорь.', rx:'Скрытые проблемы в семье, опасный дом.'},
+  {id:5,  name:'Дерево',    sym:'ψ',  col:'#001a08', up:'Здоровье, рост, жизненная сила. Корни держат.', rx:'Болезнь, истощение, угасание сил.'},
+  {id:6,  name:'Тучи',      sym:'≋',  col:'#0a0a18', up:'Неопределённость, туман. Свет или тьма — зависит от окружения.', rx:'Полное замешательство, скрытая угроза.'},
+  {id:7,  name:'Змея',      sym:'∿',  col:'#1a0000', up:'Мудрость через опыт, сложная ситуация, возможное предательство.', rx:'Ложь раскрыта, яд нейтрализован.'},
+  {id:8,  name:'Гроб',      sym:'⊠',  col:'#0a0a0a', up:'Конец, завершение. Что-то подходит к концу — освободи место.', rx:'Затяжной конец, нежелание отпустить.'},
+  {id:9,  name:'Букет',     sym:'✿',  col:'#1a0010', up:'Радость, подарок, красота. Кто-то несёт тебе цветы.', rx:'Фальшивое дружелюбие, ненужный подарок.'},
+  {id:10, name:'Коса',      sym:'⚔',  col:'#1a0800', up:'Внезапное событие, решительное действие. Что-то отрежет — быстро.', rx:'Удар, который был виден заранее.'},
+  {id:11, name:'Розги',     sym:'⚡',  col:'#1a0800', up:'Конфликт, споры, повторяющиеся паттерны. Нужно разрешить.', rx:'Конец конфликта, мир после бури.'},
+  {id:12, name:'Птицы',     sym:'∧∧', col:'#001428', up:'Разговоры, беспокойство, слухи. Слова летят быстро — осторожно.', rx:'Затихание слухов, конец тревожных разговоров.'},
+  {id:13, name:'Ребёнок',   sym:'◌',  col:'#001a10', up:'Новое начало, невинность, маленький проект. Только зарождается.', rx:'Незрелость, наивность, неготовность.'},
+  {id:14, name:'Лиса',      sym:'⟩',  col:'#1a0800', up:'Хитрость, осторожность. Работа не та что кажется — проверь.', rx:'Обман раскрыт, лис пойман.'},
+  {id:15, name:'Медведь',   sym:'◉',  col:'#1a0a00', up:'Сила, авторитет, мощный союзник или начальник рядом.', rx:'Доминирование, тиран, контроль.'},
+  {id:16, name:'Звёзды',    sym:'✦',  col:'#001428', up:'Надежда, вдохновение, духовное руководство. Звёзды указывают путь.', rx:'Потеря ориентира, иллюзорные надежды.'},
+  {id:17, name:'Аист',      sym:'△',  col:'#001a10', up:'Изменение к лучшему, движение вперёд. Благоприятные перемены.', rx:'Перемены не к лучшему, нестабильность.'},
+  {id:18, name:'Собака',    sym:'⊷',  col:'#0a0800', up:'Верный друг, преданность. Рядом тот, кто не предаст.', rx:'Предательство друга, слепая преданность.'},
+  {id:19, name:'Башня',     sym:'▲',  col:'#0a0a18', up:'Власть, институция, одиночество. Высокая цель или изоляция.', rx:'Падение власти, крах системы.'},
+  {id:20, name:'Сад',       sym:'⊕',  col:'#001a08', up:'Общество, встречи, публичность. Твоё дело становится известным.', rx:'Потеря репутации, социальная изоляция.'},
+  {id:21, name:'Гора',      sym:'▽',  col:'#0a0a0a', up:'Препятствие, задержка, упорное сопротивление. Нужны усилия.', rx:'Препятствие снято, гора сдвинулась.'},
+  {id:22, name:'Перепутье', sym:'⊞',  col:'#0a0a18', up:'Выбор, развилка, альтернативы. Нужно принять решение — сейчас.', rx:'Нет выбора, путь предопределён.'},
+  {id:23, name:'Мыши',      sym:'⊗',  col:'#1a0000', up:'Потеря, тревога, постепенное убывание. Что-то уходит по чуть-чуть.', rx:'Остановка потерь, борьба с разрушением.'},
+  {id:24, name:'Сердце',    sym:'♥',  col:'#1a0005', up:'Любовь, чувства, эмоциональная связь. Сердце открыто.', rx:'Холодность, разбитое сердце.'},
+  {id:25, name:'Кольцо',    sym:'◯',  col:'#1a1000', up:'Обязательства, договор, цикл. Что-то завершается или начинается снова.', rx:'Разрыв договора, конец цикла.'},
+  {id:26, name:'Книга',     sym:'□',  col:'#001428', up:'Тайна, знание, скрытая информация. Есть что-то, чего ты не знаешь.', rx:'Тайна раскрыта, информация обнародована.'},
+  {id:27, name:'Письмо',    sym:'✉',  col:'#001a10', up:'Послание, документ, коммуникация. Жди письма — буквального или нет.', rx:'Плохое известие, документ с проблемами.'},
+  {id:28, name:'Мужчина',   sym:'♂',  col:'#001428', up:'Мужчина-вопрошающий или значимый мужчина в ситуации.', rx:'Мужское влияние против интересов запрашивающего.'},
+  {id:29, name:'Женщина',   sym:'♀',  col:'#1a0010', up:'Женщина-вопрошающая или значимая женщина в ситуации.', rx:'Женское влияние против интересов запрашивающего.'},
+  {id:30, name:'Лилия',     sym:'❋',  col:'#0a0a18', up:'Зрелость, мудрость, гармония после бурь. Заслуженный покой.', rx:'Вынужденное смирение, мудрость не принятая другими.'},
+  {id:31, name:'Солнце',    sym:'☉',  col:'#1a1000', up:'Успех, радость, витальная сила. Всё хорошо — и будет лучше.', rx:'Временная задержка успеха, скрытое солнце.'},
+  {id:32, name:'Луна',      sym:'☽',  col:'#0a0a18', up:'Признание, эмоции, интуиция. Слушай внутренний голос.', rx:'Иллюзии, нереализованные эмоции, скрытые страхи.'},
+  {id:33, name:'Ключ',      sym:'⚷',  col:'#1a1000', up:'Решение найдено, цель достигнута, определённость. Дверь открыта.', rx:'Ключ потерян, нет решения, закрытые пути.'},
+  {id:34, name:'Рыбы',      sym:'♓',  col:'#001428', up:'Финансы, изобилие, поток денег. Деньги текут — использует их.', rx:'Финансовые потери, расточительность.'},
+  {id:35, name:'Якорь',     sym:'⚓',  col:'#001428', up:'Стабильность, долгосрочная работа, надёжная опора.', rx:'Якорь как тюрьма, застревание.'},
+  {id:36, name:'Крест',     sym:'✝',  col:'#0a0a0a', up:'Судьба, карма, неизбежная ноша. Это твой урок — неси достойно.', rx:'Бегство от кармической задачи, отрицание предназначения.'},
+];
+
+let lenormandMode = 3;
+let drawnLenormand = [];
+let flippedLenormand = new Set();
+
+const LENORMAND_SPREAD_NAMES = {1:'Одна карта', 3:'Три карты', 9:'Малое таблó (3×3)', 36:'Большое таблó (9×4)'};
+const LENORMAND_SPREAD_LABELS = {
+  1: [''],
+  3: ['Прошлое','Настоящее','Будущее'],
+  9: ['Прошлое','Настоящее','Будущее','Скрытое','Центр','Советник','Влияние','Исход','Итог'],
+  36: [],
+};
+
+function renderLenormandSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">🎴 ЛЕНОРМАН · 36 КАРТ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:10px">Конкретный, земной оракул. Большое таблó — все 36 карт.</div>
+    <div class="tarot-mode-btns" style="margin-bottom:8px">
+      ${Object.entries(LENORMAND_SPREAD_NAMES).map(([m,n])=>`
+        <button class="btn sm${lenormandMode===+m?' primary':''}" onclick="setLenormandMode(${m})">${n}</button>
+      `).join('')}
+    </div>
+    <button class="btn primary" onclick="drawLenormand()" style="margin-bottom:8px">⟡ Открыть</button>
+    <div id="len-spread" class="tarot-spread${lenormandMode===9?' len-square':lenormandMode===36?' len-tableau':''}"></div>
+    <div id="len-desc" class="tarot-desc" style="display:none"></div>
+  </div>`;
+}
+
+function setLenormandMode(m) { lenormandMode=+m; _renderActiveMiniGame(); }
+
+function drawLenormand() {
+  const deck=[...LENORMAND_CARDS];
+  drawnLenormand=[]; flippedLenormand=new Set();
+  const count=lenormandMode===36?36:lenormandMode===9?9:lenormandMode===3?3:1;
+  for(let i=0;i<count;i++){
+    const idx=Math.floor(Math.random()*deck.length);
+    drawnLenormand.push({...deck.splice(idx,1)[0], reversed:Math.random()<0.25});
+  }
+  const labels=LENORMAND_SPREAD_LABELS[lenormandMode]||[];
+  const spread=document.getElementById('len-spread');
+  if(!spread) return;
+  const isTableau=lenormandMode===36;
+  spread.innerHTML=drawnLenormand.map((c,i)=>`
+    <div class="tarot-card-wrap${isTableau?' len-small':''}" onclick="flipLenormandCard(${i})">
+      <div class="tarot-card${c.reversed?' reversed':''}${isTableau?' len-small-card':''}" id="lcard-${i}">
+        <div class="tarot-back" style="background:repeating-linear-gradient(45deg,#00100a,#00100a 3px,#001810 3px,#001810 6px)">
+          <div class="tarot-back-sym" style="font-size:12px;color:#004422">✦</div>
+        </div>
+        <div class="tarot-front" style="background:${c.col}">
+          <div class="tarot-front-num">${c.id}</div>
+          <div class="tarot-front-sym" style="font-size:${isTableau?'14px':'22px'}">${c.sym}</div>
+          <div class="tarot-front-name" style="font-size:${isTableau?'7px':'9px'}">${c.name}</div>
+        </div>
+      </div>
+      ${labels[i]&&!isTableau?`<div class="tarot-position-label">${labels[i]}</div>`:''}
+      ${isTableau?`<div style="font-size:7px;color:var(--textd);text-align:center;margin-top:2px">${c.id}</div>`:''}
+    </div>`).join('');
+  document.getElementById('len-desc').style.display='none';
+}
+
+function flipLenormandCard(i) {
+  if(!drawnLenormand[i]) return;
+  const el=document.getElementById(`lcard-${i}`);
+  if(!el) return;
+  if(lenormandMode===36) {
+    // В Большом таблó — карты остаются открытыми, каждая накапливается
+    el.classList.toggle('flipped');
+    if(el.classList.contains('flipped')) flippedLenormand.add(i);
+    else flippedLenormand.delete(i);
+  } else {
+    el.classList.toggle('flipped');
+    if(el.classList.contains('flipped')) flippedLenormand.add(i);
+    else flippedLenormand.delete(i);
+  }
+  renderLenormandDescriptions();
+}
+
+function renderLenormandDescriptions() {
+  const desc=document.getElementById('len-desc');
+  if(!desc) return;
+  if(!flippedLenormand.size){desc.style.display='none';return;}
+  const labels=LENORMAND_SPREAD_LABELS[lenormandMode]||[];
+  desc.style.display='block';
+  desc.innerHTML=[...flippedLenormand].sort().map((i,idx,arr)=>{
+    const c=drawnLenormand[i];
+    const label=labels[i]?`<div style="font-size:11px;font-weight:bold;color:var(--accent);letter-spacing:2px;margin-bottom:5px;text-shadow:0 0 6px var(--accent)">◈ ${labels[i]}</div>`:'';
+    const revTag=c.reversed?`<span style="color:var(--cursec);font-size:9px"> [перевёрнута]</span>`:'';
+    const sep=idx<arr.length-1?'border-bottom:1px dashed var(--border);margin-bottom:8px;padding-bottom:8px;':'';
+    return `<div style="${sep}">${label}<b style="color:var(--accent2);font-size:14px">${c.name}</b>${revTag}<br><div style="margin-top:4px">${c.reversed?`<span class="tarot-desc-rev">⊗ ${c.rx}</span>`:`⟡ ${c.up}`}</div></div>`;
+  }).join('');
+}
+
+// ===== АРМОНСКИЕ РУНЫ (18, Гвидо фон Лист) =====
+// Порядок по List: Fa Ur Thorn Os Rit Ka | Hagal Noth Is Ar Sig Tyr | Bar Laf Man Yr Eh Gibor
+// Символы сверены с картой Армонских рун (фото)
+const ARMANIST_RUNES = [
+  // Группа I
+  {name:'Фа · Fa',   sym:'ᚠ', col:'#1a0800', up:'Начало, огонь творения, исходящая сила. Первый шаг из небытия в бытие.', rx:'Угасание начала, ложный старт.'},
+  {name:'Ур · Ur',   sym:'ᚢ', col:'#1a0500', up:'Вечная прапричина, нерушимая основа. То, что было до всего.', rx:'Отрыв от корней, потеря вечного измерения.'},
+  {name:'Турс · Th', sym:'ᚦ', col:'#1a0000', up:'Шип защиты, врата испытания. Через боль — в знание. Страж порога.', rx:'Слепое разрушение, боль без трансформации.'},
+  {name:'Ос · Os',   sym:'ᚨ', col:'#001a10', up:'Уста богов, слово как сила. Что произнесено — становится реальным.', rx:'Пустые слова, ложь, потеря дара речи.'},
+  {name:'Рит · Rit', sym:'ᚱ', col:'#001428', up:'Колесо космического закона. Всё идёт правильным путём.', rx:'Нарушение закона, кармический сбой.'},
+  {name:'Ка · Ka',   sym:'ᚲ', col:'#1a0800', up:'Искусство, способность, внутренний огонь мастера. Ты можешь.', rx:'Неспособность, потеря дара, мастерство во зло.'},
+  // Группа II
+  {name:'Хагал · H', sym:'✶', col:'#0a0a1a', up:'Вселенская гармония, семя мирового порядка. Шестигранник — мать всех рун.', rx:'Распад гармонии, слепой хаос без узора.'},
+  {name:'Нот · N',   sym:'ᚾ', col:'#1a0800', up:'Нужда как учитель, судьба как принуждение. Кармический урок.', rx:'Рабство обстоятельствам, повторяющийся цикл.'},
+  {name:'Ис · Is',   sym:'ᛁ', col:'#001428', up:'Лёд, концентрация Я, застывшее бытие. Внутри тебя — бесконечность.', rx:'Эгоизм, заморозка, блокировка потока.'},
+  {name:'Ар · Ar',   sym:'ᛆ', col:'#1a1000', up:'Праогонь, честь, солнечная сила. Ты несёшь свет — не прячь его.', rx:'Позор, потеря чести, свет скрыт за ложью.'},
+  {name:'Зиг · S',   sym:'ᛋ', col:'#1a1200', up:'Победа солнца, воля к жизни. Молния Зиг — непобедима.', rx:'Слепящая самонадеянность, победа становящаяся поражением.'},
+  {name:'Тюр · T',   sym:'ᛏ', col:'#0a0a18', up:'Жертва ради правды, бог справедливости. Что правильно — знаешь сам.', rx:'Несправедливость, поражение правого дела.'},
+  // Группа III
+  {name:'Бар · B',   sym:'ᛒ', col:'#001a08', up:'Рождение нового в темноте. Ещё не видно — но уже происходит.', rx:'Блокировка созидания, смерть нерождённого.'},
+  {name:'Лаф · L',   sym:'ᛚ', col:'#001020', up:'Вода инициации, путь посвящённого. Испытание водой открывает тайну.', rx:'Утопание в иллюзиях, ложная инициация.'},
+  {name:'Ман · M',   sym:'ᛗ', col:'#100010', up:'Человек как мера всего, богоподобный разум. Ты — микрокосм.', rx:'Потеря человечности, высокомерие, падение.'},
+  {name:'Ир · Y',    sym:'ᛦ', col:'#1a0000', up:'Лук ошибки, обратный путь. Иногда ошибка — это верное направление.', rx:'Полное заблуждение, иллюзия без выхода.'},
+  {name:'Эх · E',    sym:'ᛖ', col:'#0a1000', up:'Брак, вечный союз, мировая гармония пары. Двое становятся одним.', rx:'Разлад, неверный союз, брак против природы.'},
+  {name:'Гибор · G', sym:'ᚷ', col:'#0a0a00', up:'Бог-даритель, колесо жизни. Жертва возвращается даром. Ты — часть целого.', rx:'Жертва без возврата, богооставленность.'},
+];
+
+let thrownArmanistRunes = [];
+
+function renderArmanistSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">ᚠ АРМОНСКИЕ РУНЫ · ГВИДО ФОН ЛИСТ</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:12px">
+      18 рун оккультного Арманизма. Темнее Футарка — глубже в тень.
+    </div>
+    <button class="btn primary" onclick="throwArmanistRunes()">ᚷ Бросить руны</button>
+    <div class="rune-spread" id="armanist-spread" style="margin-top:14px"></div>
+    <div class="rune-meanings" id="armanist-meanings"></div>
+  </div>`;
+}
+
+function throwArmanistRunes() {
+  const pool=[...ARMANIST_RUNES];
+  thrownArmanistRunes=[];
+  const positions=['Прошлое','Настоящее','Путь'];
+  for(let i=0;i<3;i++){
+    const idx=Math.floor(Math.random()*pool.length);
+    const r={...pool.splice(idx,1)[0]};
+    r.reversed=Math.random()<0.4;
+    r.position=positions[i];
+    thrownArmanistRunes.push(r);
+  }
+  const spread=document.getElementById('armanist-spread');
+  const meanings=document.getElementById('armanist-meanings');
+  if(!spread) return;
+  spread.innerHTML=thrownArmanistRunes.map((r,i)=>`
+    <div class="rune-wrap">
+      <div class="rune-tile face-down" id="artile-${i}" style="background:${r.col}" onclick="revealArmanistRune(${i})">✦</div>
+      <div class="rune-name" id="arname-${i}" style="display:none">${r.name}</div>
+      <div class="rune-pos">${r.position}</div>
+    </div>`).join('');
+  if(meanings) meanings.innerHTML='';
+  thrownArmanistRunes.forEach((_,i)=>setTimeout(()=>revealArmanistRune(i),400+i*500));
+}
+
+function revealArmanistRune(i) {
+  const r=thrownArmanistRunes[i];
+  if(!r) return;
+  const tile=document.getElementById(`artile-${i}`);
+  const nameEl=document.getElementById(`arname-${i}`);
+  if(!tile) return;
+  tile.textContent=r.sym;
+  tile.style.background='';
+  tile.style.color='';
+  tile.classList.remove('face-down');
+  tile.classList.add('revealed');
+  if(r.reversed) tile.classList.add('rune-reversed');
+  if(nameEl) nameEl.style.display='block';
+  const meanings=document.getElementById('armanist-meanings');
+  if(!meanings) return;
+  if(document.getElementById(`armean-${i}`)) return;
+  const div=document.createElement('div');
+  div.id=`armean-${i}`;
+  div.className='rune-meaning-block';
+  div.innerHTML=`<div class="rune-meaning-title">${r.position} · ${r.sym} ${r.name}${r.reversed?' [перевёрнутая]':''}</div>${r.reversed?`<span class="rune-meaning-rev">⊗ ${r.rx}</span>`:`⟡ ${r.up}`}`;
+  meanings.appendChild(div);
+}
+
+// ===== НАТАЛЬНАЯ КАРТА =====
+// Алгоритмы: Jean Meeus «Astronomical Algorithms», геокодинг: Nominatim (OpenStreetMap, бесплатно)
+
+const NATAL_SIGNS = ['Овен','Телец','Близнецы','Рак','Лев','Дева','Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
+const NATAL_SIGN_SYM = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+const NATAL_SIGN_COL = ['#cc2200','#228800','#ddaa00','#0055cc','#cc8800','#228844','#6688cc','#880000','#aa4400','#334455','#0088aa','#664488'];
+const NATAL_PLANET_SYM = {sun:'☉',moon:'☽',mercury:'☿',venus:'♀',mars:'♂',jupiter:'♃',saturn:'♄',uranus:'⛢',neptune:'♆',pluto:'♇',asc:'AC',mc:'MC'};
+const NATAL_PLANET_NAMES = {sun:'Солнце',moon:'Луна',mercury:'Меркурий',venus:'Венера',mars:'Марс',jupiter:'Юпитер',saturn:'Сатурн',uranus:'Уран',neptune:'Нептун',pluto:'Плутон',asc:'Асцендент',mc:'МЦ'};
+const NATAL_PLANET_COL = {sun:'#ffaa00',moon:'#aaaadd',mercury:'#88aacc',venus:'#cc88aa',mars:'#cc4422',jupiter:'#aa8844',saturn:'#888866',uranus:'#44ccbb',neptune:'#4466cc',pluto:'#884466',asc:'#ff6600',mc:'#ff6600'};
+
+// ---- Интерпретации ----
+const NATAL_SUN_IN_SIGN = {
+  0:'Активность, инициатива, лидерство. Идёшь напролом, не оглядываясь.',
+  1:'Стабильность, упорство, чувство формы. Строишь медленно — но надёжно.',
+  2:'Гибкость, любопытство, двойственность. Умеешь смотреть на мир с разных сторон.',
+  3:'Глубокая привязанность, интуиция, защита близких. Дом — твоя крепость.',
+  4:'Самовыражение, щедрость, творческая сила. Хочешь быть замеченным — и заслуживаешь.',
+  5:'Анализ, точность, служение. Совершенствование деталей — смысл жизни.',
+  6:'Гармония, дипломатия, поиск справедливости. Тяжело быть собой там, где нет баланса.',
+  7:'Глубина, трансформация, воля. Умираешь и возрождаешься снова — это твой путь.',
+  8:'Свобода, идеализм, поиск смысла. Горизонт всегда манит дальше.',
+  9:'Дисциплина, ответственность, структура. Строишь фундамент — в себе и в мире.',
+  10:'Независимость, оригинальность, братство. Живёшь по своим правилам.',
+  11:'Сострадание, воображение, растворение границ. Чувствуешь то, что другие не видят.',
+};
+const NATAL_MOON_IN_SIGN = {
+  0:'Импульсивные реакции, быстрые перепады настроения. Нужна активность чтобы чувствовать себя живым.',
+  1:'Эмоциональная стабильность, потребность в уюте и надёжности. Привязываешься глубоко.',
+  2:'Рациональный подход к чувствам. Говоришь о них легче, чем переживаешь.',
+  3:'Сверхчувствительность, глубокая память. Прошлое живёт в тебе очень долго.',
+  4:'Теплота, щедрость, потребность в признании. Эмоции выражаешь ярко.',
+  5:'Анализируешь свои чувства. Тревожность, стремление к порядку внутри.',
+  6:'Потребность в партнёрстве, гармонии, отношениях. Один — неполный.',
+  7:'Интенсивность, глубина, ревность. Не умеешь чувствовать наполовину.',
+  8:'Свобода в эмоциях, оптимизм, непривязанность. Труднее переносишь монотонность.',
+  9:'Сдержанность, контроль над чувствами. Внутри глубже, чем снаружи.',
+  10:'Нестандартные реакции, неожиданные перепады. Эмоции как эксперимент.',
+  11:'Эмпатия до растворения в других. Граница между собой и миром размыта.',
+};
+const NATAL_ASC_IN_SIGN = {
+  0:'Активный, прямой, энергичный. Входишь в комнату — и это замечают.',
+  1:'Спокойный, надёжный, чувственный. Первое впечатление — устойчивость.',
+  2:'Общительный, любознательный, быстрый. Кажешься легче, чем есть на самом деле.',
+  3:'Мягкий, заботливый, закрытый. Пускаешь не всех.',
+  4:'Уверенный, тёплый, притягивающий. Хочешь производить впечатление — и производишь.',
+  5:'Сдержанный, аналитичный, точный. Кажешься холоднее, чем внутри.',
+  6:'Приятный, дипломатичный, красивый. Умеешь нравиться.',
+  7:'Загадочный, интенсивный, проникновенный. Не всё говоришь.',
+  8:'Открытый, жизнерадостный, смелый. Оптимизм виден сразу.',
+  9:'Серьёзный, сдержанный, ответственный. Доверие завоёвываешь медленно.',
+  10:'Необычный, независимый, неожиданный. Сложно предсказать.',
+  11:'Мягкий, неопределённый, таинственный. Кажешься ускользающим.',
+};
+
+function natalSign(lon) {
+  const l = ((lon % 360) + 360) % 360;
+  const idx = Math.floor(l / 30);
+  return { idx, deg: Math.floor(l % 30), min: Math.floor((l % 1) * 60), name: NATAL_SIGNS[idx], sym: NATAL_SIGN_SYM[idx] };
+}
+
+// Julian Day Number
+function natalJD(year, month, day, hour = 12, tz = 0) {
+  let h = hour - tz, d = day, m = month, y = year;
+  while (h < 0)  { h += 24; d--; }
+  while (h >= 24){ h -= 24; d++; }
+  if (m <= 2) { y--; m += 12; }
+  const A = Math.floor(y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + h / 24 + B - 1524.5;
+}
+
+function rad(d) { return d * Math.PI / 180; }
+function deg(r) { return r * 180 / Math.PI; }
+function norm360(x) { return ((x % 360) + 360) % 360; }
+
+// Солнце (Meeus Ch.25, точность ~0.01°)
+function natalSun(T) {
+  const L0 = norm360(280.46646 + 36000.76983 * T);
+  const M  = norm360(357.52911 + 35999.05029 * T - 0.0001537 * T * T);
+  const C  = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(rad(M))
+           + (0.019993 - 0.000101 * T) * Math.sin(rad(2 * M))
+           +  0.000289 * Math.sin(rad(3 * M));
+  const sunLon = norm360(L0 + C);
+  // Apparent longitude (nutation ~-0.00569)
+  const omega = 125.04 - 1934.136 * T;
+  return norm360(sunLon - 0.00569 - 0.00478 * Math.sin(rad(omega)));
+}
+
+// Луна (Meeus Ch.47, ~15 главных членов, точность ~0.3°)
+function natalMoon(T) {
+  const Lp = norm360(218.3164477 + 481267.88123421 * T - 0.0015786 * T * T);
+  const D  = norm360(297.8501921 + 445267.1114034  * T - 0.0018819 * T * T);
+  const M  = norm360(357.5291092 + 35999.0502909   * T - 0.0001536 * T * T);
+  const Mp = norm360(134.9633964 + 477198.8675055  * T + 0.0087414 * T * T);
+  const F  = norm360( 93.2720950 + 483202.0175233  * T - 0.0036539 * T * T);
+  const E  = 1 - 0.002516 * T - 0.0000074 * T * T;
+  const sl =
+    6288774 * Math.sin(rad(Mp))
+  + 1274027 * Math.sin(rad(2*D - Mp))
+  +  658314 * Math.sin(rad(2*D))
+  +  213618 * Math.sin(rad(2*Mp))
+  -  185116 * E * Math.sin(rad(M))
+  -  114332 * Math.sin(rad(2*F))
+  +   58793 * Math.sin(rad(2*D - 2*Mp))
+  +   57066 * E * Math.sin(rad(2*D - M - Mp))
+  +   53322 * Math.sin(rad(2*D + Mp))
+  +   45758 * E * Math.sin(rad(2*D - M))
+  -   40923 * E * Math.sin(rad(M - Mp))
+  -   34720 * Math.sin(rad(D))
+  -   30383 * E * Math.sin(rad(M + Mp))
+  +   15327 * Math.sin(rad(2*D - 2*F))
+  -   12528 * Math.sin(rad(Mp + 2*F));
+  return norm360(Lp + sl / 1000000);
+}
+
+// Планеты — упрощённые орбитальные элементы (Meeus Ch.33, точность ~1-2°)
+function natalPlanet(name, T) {
+  const E = {
+    mercury:{ L0:252.250906,  L1:149472.6746358, a:0.38709927, e:0.20563069, I:7.00497902,  O:48.33076593, w:77.45779628 },
+    venus:  { L0:181.979801,  L1: 58517.8156760, a:0.72333566, e:0.00677672, I:3.39467605,  O:76.67984255, w:131.60246718},
+    mars:   { L0:355.433000,  L1: 19140.2993039, a:1.52371034, e:0.09339410, I:1.84969142,  O:49.55953891, w:336.04084002},
+    jupiter:{ L0: 34.351519,  L1:  3034.9056606, a:5.20288700, e:0.04838624, I:1.30439695,  O:100.47390909,w:14.72847983},
+    saturn: { L0: 50.077444,  L1:  1222.1137943, a:9.53667594, e:0.05386179, I:2.48599187,  O:113.66242448,w:92.59887831},
+    uranus: { L0:314.055005,  L1:   428.4669983, a:19.18916464,e:0.04725744, I:0.77263783,  O:74.01692503, w:170.95427630},
+    neptune:{ L0:304.348665,  L1:   218.4862002, a:30.06992276,e:0.00859048, I:1.77004347,  O:131.78422574,w:44.96476227},
+    pluto:  { L0:238.928600,  L1:   145.1827000, a:39.48211675,e:0.24882730, I:17.14001206, O:110.30393684,w:224.06891629},
+  };
+  const p = E[name];
+  if (!p) return 0;
+  const L   = norm360(p.L0 + p.L1 * T);
+  const M   = norm360(L - p.w);
+  const Mrad= rad(M);
+  const v   = M + (2*p.e - 0.25*p.e*p.e*p.e) * Math.sin(Mrad)
+                + 1.25*p.e*p.e*Math.sin(2*Mrad)
+                + (13/12)*p.e*p.e*p.e*Math.sin(3*Mrad);
+  const lon = norm360(v + p.w);
+  // Convert heliocentric ecliptic to geocentric (simplified, good for outer planets)
+  // For inner planets, full conversion needed — using Sun position
+  const sunLon = natalSun(T);
+  if (name === 'mercury' || name === 'venus') {
+    // Heliocentric → Geocentric for inner planets
+    const sl = rad(sunLon); const pl = rad(lon);
+    const R = 1.0; // Earth-Sun distance (AU, simplified)
+    const r = p.a;
+    const x = r * Math.cos(pl) - R * Math.cos(sl);
+    const y = r * Math.sin(pl) - R * Math.sin(sl);
+    return norm360(deg(Math.atan2(y, x)));
+  }
+  return lon;
+}
+
+// Асцендент + МЦ (Meeus Ch.14)
+function natalAscMC(jd, lat, lon) {
+  const T    = (jd - 2451545.0) / 36525;
+  const GMST = norm360(280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T);
+  const LST  = norm360(GMST + lon);
+  const eps  = 23.439291111 - 0.013004167 * T;
+  // MC
+  const mc = norm360(deg(Math.atan2(Math.tan(rad(LST)), Math.cos(rad(eps)))));
+  // ASC
+  const y = -Math.cos(rad(LST));
+  const x =  Math.sin(rad(LST)) * Math.cos(rad(eps)) + Math.tan(rad(lat)) * Math.sin(rad(eps));
+  const asc = norm360(deg(Math.atan2(y, x)));
+  return { asc, mc };
+}
+
+// Аспекты
+const NATAL_ASPECTS = [
+  {name:'Соединение', angle:0,   orb:8,  col:'#ffcc00', sym:'☌'},
+  {name:'Секстиль',   angle:60,  orb:5,  col:'#44cc44', sym:'✶'},
+  {name:'Квадратура', angle:90,  orb:7,  col:'#cc4422', sym:'□'},
+  {name:'Трин',       angle:120, orb:7,  col:'#4488ff', sym:'△'},
+  {name:'Оппозиция',  angle:180, orb:8,  col:'#cc2266', sym:'☍'},
+];
+
+function natalCalcAspects(positions) {
+  const keys = Object.keys(positions).filter(k => positions[k] !== null);
+  const aspects = [];
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = positions[keys[i]], b = positions[keys[j]];
+      const diff = Math.abs(norm360(a - b));
+      const angle = diff > 180 ? 360 - diff : diff;
+      for (const asp of NATAL_ASPECTS) {
+        if (Math.abs(angle - asp.angle) <= asp.orb) {
+          aspects.push({ p1: keys[i], p2: keys[j], asp, orb: Math.abs(angle - asp.angle).toFixed(1) });
+          break;
+        }
+      }
+    }
+  }
+  return aspects;
+}
+
+// Рендер SVG-колеса
+function drawNatalSVG(positions, hasTime) {
+  const W = 400, H = 400, cx = W/2, cy = H/2;
+  const Rout = 185, Rzod = 165, Rinn = 140, Rplanet = 115, Rcenter = 70;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px;display:block;margin:0 auto">`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${Rout}" fill="none" stroke="var(--borderg)" stroke-width="1"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${Rzod}" fill="none" stroke="var(--border)" stroke-width="1"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${Rinn}" fill="none" stroke="var(--border)" stroke-width="0.5"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${Rcenter}" fill="none" stroke="var(--border)" stroke-width="0.5"/>`;
+
+  // Знаки зодиака
+  for (let i = 0; i < 12; i++) {
+    const a = rad(-90 + i * 30);
+    const a2 = rad(-90 + (i + 0.5) * 30);
+    // Разделители
+    const x1 = cx + Rzod * Math.cos(a), y1 = cy + Rzod * Math.sin(a);
+    const x2 = cx + Rout * Math.cos(a), y2 = cy + Rout * Math.sin(a);
+    svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--border)" stroke-width="0.5"/>`;
+    // Символ знака
+    const rx = cx + (Rzod + 11) * Math.cos(a2), ry = cy + (Rzod + 11) * Math.sin(a2);
+    svg += `<text x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${NATAL_SIGN_COL[i]}">${NATAL_SIGN_SYM[i]}</text>`;
+  }
+
+  // Аспектные линии
+  const planetsForAspects = Object.keys(positions).filter(k => positions[k] !== null && k !== 'asc' && k !== 'mc');
+  for (const asp of natalCalcAspects(positions)) {
+    const a1 = rad(-90 - positions[asp.p1]);
+    const a2 = rad(-90 - positions[asp.p2]);
+    const x1 = cx + Rcenter * Math.cos(a1), y1 = cy + Rcenter * Math.sin(a1);
+    const x2 = cx + Rcenter * Math.cos(a2), y2 = cy + Rcenter * Math.sin(a2);
+    svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${asp.asp.col}" stroke-width="0.6" opacity="0.5"/>`;
+  }
+
+  // Планеты
+  const placed = {};
+  for (const [pname, lon] of Object.entries(positions)) {
+    if (lon === null) continue;
+    // Offset if too close to another planet
+    let finalLon = lon;
+    for (const prev of Object.values(placed)) {
+      if (Math.abs(norm360(finalLon - prev)) < 6) finalLon += 7;
+    }
+    placed[pname] = finalLon;
+    const a = rad(-90 - finalLon);
+    const R = (pname === 'asc' || pname === 'mc') ? Rinn + 10 : Rplanet;
+    const px = cx + R * Math.cos(a), py = cy + R * Math.sin(a);
+    const sym = NATAL_PLANET_SYM[pname];
+    const col = NATAL_PLANET_COL[pname];
+    svg += `<text x="${px.toFixed(1)}" y="${py.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="${pname==='asc'||pname==='mc'?9:12}" fill="${col}" font-weight="bold">${sym}</text>`;
+    // Tick on inner circle
+    const tx1 = cx + (Rinn-2) * Math.cos(rad(-90-lon)), ty1 = cy + (Rinn-2) * Math.sin(rad(-90-lon));
+    const tx2 = cx + (Rinn+2) * Math.cos(rad(-90-lon)), ty2 = cy + (Rinn+2) * Math.sin(rad(-90-lon));
+    svg += `<line x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}" x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}" stroke="${col}" stroke-width="1.5"/>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// Форма и логика
+let natalData = null;
+let natalCityCoords = null;
+
+function renderNatalSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">☿ НАТАЛЬНАЯ КАРТА</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:14px">
+      Расчёт по алгоритмам Жана Мееуса. Позиции планет, знаки, аспекты. Геокодинг: OpenStreetMap.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:360px">
+      <div class="field">
+        <label>ДАТА РОЖДЕНИЯ</label>
+        <input type="date" id="natal-date">
+      </div>
+      <div class="field">
+        <label>ВРЕМЯ РОЖДЕНИЯ <span style="color:var(--textd)">(необязательно — без него нет Асцендента)</span></label>
+        <input type="time" id="natal-time" placeholder="чч:мм">
+      </div>
+      <div class="field">
+        <label>ГОРОД РОЖДЕНИЯ</label>
+        <div style="display:flex;gap:6px">
+          <input id="natal-city" placeholder="Город рождения..." style="flex:1">
+          <button class="btn sm" onclick="natalLookupCity()">⟡ Найти</button>
+        </div>
+        <div id="natal-city-result" style="font-size:10px;color:var(--accent2);margin-top:4px"></div>
+      </div>
+      <button class="btn primary" onclick="natalCalculate()">☿ Рассчитать карту</button>
+    </div>
+    <div id="natal-chart-area" style="margin-top:20px"></div>
+  </div>`;
+}
+
+async function natalLookupCity() {
+  const q = document.getElementById('natal-city').value.trim();
+  if (!q) return;
+  const res = document.getElementById('natal-city-result');
+  res.textContent = 'Поиск...';
+  try {
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+      headers: { 'Accept-Language': 'ru', 'User-Agent': 'EthW-NatalChart/1.0' }
+    });
+    const data = await resp.json();
+    if (!data.length) { res.textContent = '⚠ Город не найден.'; return; }
+    const d = data[0];
+    natalCityCoords = { lat: parseFloat(d.lat), lon: parseFloat(d.lon), name: d.display_name.split(',')[0] };
+    res.textContent = `✓ ${natalCityCoords.name} · ${natalCityCoords.lat.toFixed(2)}° с.ш. · ${natalCityCoords.lon.toFixed(2)}° в.д.`;
+  } catch(e) {
+    res.textContent = '⚠ Ошибка геокодинга.';
+  }
+}
+
+function natalCalculate() {
+  const dateEl = document.getElementById('natal-date');
+  const timeEl = document.getElementById('natal-time');
+  const area   = document.getElementById('natal-chart-area');
+  if (!dateEl.value) { toast('Введите дату рождения.'); return; }
+  if (!natalCityCoords) { toast('Сначала найдите город.'); return; }
+
+  const [y, m, d] = dateEl.value.split('-').map(Number);
+  const hasTime = !!timeEl.value;
+  const [h, min] = hasTime ? timeEl.value.split(':').map(Number) : [12, 0];
+  const hour = h + min / 60;
+
+  // Примерный UTC-offset из долготы (грубо, ±30мин погрешность)
+  const tzApprox = Math.round(natalCityCoords.lon / 15);
+  const jd = natalJD(y, m, d, hour, tzApprox);
+  const T  = (jd - 2451545.0) / 36525;
+
+  const positions = {
+    sun:     natalSun(T),
+    moon:    natalMoon(T),
+    mercury: natalPlanet('mercury', T),
+    venus:   natalPlanet('venus', T),
+    mars:    natalPlanet('mars', T),
+    jupiter: natalPlanet('jupiter', T),
+    saturn:  natalPlanet('saturn', T),
+    uranus:  natalPlanet('uranus', T),
+    neptune: natalPlanet('neptune', T),
+    pluto:   natalPlanet('pluto', T),
+    asc: null, mc: null
+  };
+
+  if (hasTime) {
+    const { asc, mc } = natalAscMC(jd, natalCityCoords.lat, natalCityCoords.lon);
+    positions.asc = asc;
+    positions.mc  = mc;
+  }
+
+  natalData = { positions, hasTime, jd, lat: natalCityCoords.lat, lon: natalCityCoords.lon };
+
+  // Рендер
+  const svg = drawNatalSVG(positions, hasTime);
+  const aspects = natalCalcAspects(positions);
+
+  // Таблица планет
+  const planetOrder = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+  const table = planetOrder.map(p => {
+    const s = natalSign(positions[p]);
+    return `<tr>
+      <td style="color:${NATAL_PLANET_COL[p]};font-size:14px;text-align:center">${NATAL_PLANET_SYM[p]}</td>
+      <td style="color:var(--text)">${NATAL_PLANET_NAMES[p]}</td>
+      <td style="color:${NATAL_SIGN_COL[s.idx]}">${s.sym} ${s.name}</td>
+      <td style="color:var(--textd)">${s.deg}°${s.min.toString().padStart(2,'0')}'</td>
+    </tr>`;
+  }).join('');
+
+  const ascRow = hasTime ? (() => {
+    const s = natalSign(positions.asc), sm = natalSign(positions.mc);
+    return `<tr><td style="color:${NATAL_PLANET_COL.asc};font-size:11px;text-align:center">AC</td>
+      <td style="color:var(--text)">Асцендент</td>
+      <td style="color:${NATAL_SIGN_COL[s.idx]}">${s.sym} ${s.name}</td>
+      <td style="color:var(--textd)">${s.deg}°${s.min.toString().padStart(2,'0')}'</td></tr>
+    <tr><td style="color:${NATAL_PLANET_COL.mc};font-size:11px;text-align:center">MC</td>
+      <td style="color:var(--text)">Медиум Цели</td>
+      <td style="color:${NATAL_SIGN_COL[sm.idx]}">${sm.sym} ${sm.name}</td>
+      <td style="color:var(--textd)">${sm.deg}°${sm.min.toString().padStart(2,'0')}'</td></tr>`;
+  })() : '';
+
+  const aspectsHtml = aspects.map(a => `
+    <div style="font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)">
+      <span style="color:${NATAL_PLANET_COL[a.p1]}">${NATAL_PLANET_SYM[a.p1]}</span>
+      <span style="color:${a.asp.col};margin:0 4px">${a.asp.sym} ${a.asp.name}</span>
+      <span style="color:${NATAL_PLANET_COL[a.p2]}">${NATAL_PLANET_SYM[a.p2]}</span>
+      <span style="color:var(--textd);float:right">${a.orb}° орб</span>
+    </div>`).join('');
+
+  // Интерпретации
+  const sunSign = natalSign(positions.sun);
+  const moonSign = natalSign(positions.moon);
+  const ascSign = hasTime ? natalSign(positions.asc) : null;
+
+  const interp = `
+    <div style="margin-bottom:8px">
+      <div style="color:${NATAL_PLANET_COL.sun};font-weight:bold;margin-bottom:3px">${NATAL_PLANET_SYM.sun} Солнце в ${sunSign.sym} ${sunSign.name}</div>
+      <div style="font-size:11px;color:var(--text)">${NATAL_SUN_IN_SIGN[sunSign.idx]}</div>
+    </div>
+    <div style="margin-bottom:8px">
+      <div style="color:${NATAL_PLANET_COL.moon};font-weight:bold;margin-bottom:3px">${NATAL_PLANET_SYM.moon} Луна в ${moonSign.sym} ${moonSign.name}</div>
+      <div style="font-size:11px;color:var(--text)">${NATAL_MOON_IN_SIGN[moonSign.idx]}</div>
+    </div>
+    ${ascSign ? `<div style="margin-bottom:8px">
+      <div style="color:${NATAL_PLANET_COL.asc};font-weight:bold;margin-bottom:3px">AC Асцендент в ${ascSign.sym} ${ascSign.name}</div>
+      <div style="font-size:11px;color:var(--text)">${NATAL_ASC_IN_SIGN[ascSign.idx]}</div>
+    </div>` : ''}
+    ${!hasTime ? `<div style="font-size:10px;color:var(--textd);padding:6px;border:1px solid var(--border)">⚠ Время не указано — Асцендент, МЦ и дома не рассчитаны. Луна может быть смещена на 1 знак если рождён в день смены знака Луны.</div>` : ''}
+  `;
+
+  area.innerHTML = `
+    ${svg}
+    <div style="margin-top:16px;max-width:600px;margin-left:auto;margin-right:auto;padding:10px;background:var(--panel);border:1px solid var(--borderg)">
+      <div class="sb-title" style="margin-bottom:8px">☿ ТРАНЗИТЫ — ПРОГНОЗ НА ДАТУ</div>
+      <div style="color:var(--textd);font-size:10px;margin-bottom:8px">Введи любую дату — покажу какие планеты аспектируют твою натальную карту.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="date" id="transit-date" style="font-size:11px;padding:3px 6px">
+        <button class="btn sm primary" onclick="natalCalcTransits()">⟡ Рассчитать транзиты</button>
+      </div>
+      <div id="transit-result" style="margin-top:10px"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;max-width:600px;margin-left:auto;margin-right:auto">
+      <div>
+        <div class="sb-title" style="margin-bottom:8px">ПЛАНЕТЫ</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          ${table}${ascRow}
+        </table>
+      </div>
+      <div>
+        <div class="sb-title" style="margin-bottom:8px">АСПЕКТЫ</div>
+        <div>${aspectsHtml || '<span style="color:var(--textd);font-size:10px">Нет значимых аспектов</span>'}</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;max-width:600px;margin-left:auto;margin-right:auto">
+      <div class="sb-title" style="margin-bottom:10px">ИНТЕРПРЕТАЦИИ</div>
+      ${interp}
+    </div>
+  `;
+}
+
+// ===== ТРАНЗИТЫ =====
+const TRANSIT_INTERP = {
+  // [транзитная_планета][аспект][натальная_планета] — упрощённо по аспекту
+  conj: { // Соединение
+    sun:   {sun:'Новый солнечный цикл, мощный импульс личной силы.',moon:'Эмоциональный подъём, выход наружу.',mercury:'Важные слова и решения.',venus:'Период привлекательности и отношений.',mars:'Энергия и инициатива на пике.',jupiter:'Удача и расширение возможностей.',saturn:'Серьёзный момент, ответственность.'},
+    moon:  {sun:'Импульс из подсознания выходит на поверхность.',saturn:'Эмоциональная тяжесть, требует терпения.',jupiter:'Хорошее настроение, оптимизм.',mars:'Эмоциональная вспыльчивость.'},
+    mercury:{sun:'Период ясности и важных разговоров.',saturn:'Серьёзные переговоры, взвешенные решения.'},
+    venus:  {sun:'Гармония, притяжение, красота.',mars:'Страсть и творчество обострены.',saturn:'Испытание отношений.'},
+    mars:   {sun:'Максимальная энергия и напор.',saturn:'Блокировка действий, нужно терпение.',jupiter:'Активное везение, действуй!'},
+    jupiter:{sun:'Лучший период для роста и расширения.',saturn:'Баланс между ростом и ограничениями.',moon:'Эмоциональный оптимизм.'},
+    saturn: {sun:'Серьёзное испытание, подведение итогов.',moon:'Эмоциональная нагрузка, взросление.',jupiter:'Удача требует структуры.',mars:'Frustration — действие заблокировано.'},
+    uranus: {sun:'Неожиданные перемены, освобождение.',moon:'Нестабильность, неожиданные события.',saturn:'Разрушение старых структур.'},
+    neptune:{sun:'Период туманности, интуиция обострена.',moon:'Мечтательность, уязвимость иллюзиям.',saturn:'Растворение границ и ответственности.'},
+    pluto:  {sun:'Трансформация на глубинном уровне.',moon:'Глубокое эмоциональное очищение.',saturn:'Разрушение и перестройка основ жизни.'},
+  },
+  trine: { // Трин — благоприятный
+    sun:   {jupiter:'Удача течёт сама.',saturn:'Дисциплина приносит плоды.',venus:'Гармония и успех в отношениях.'},
+    moon:  {jupiter:'Эмоциональный покой и радость.',venus:'Тепло в отношениях.'},
+    jupiter:{sun:'Расцвет, возможности открываются.',moon:'Оптимизм и благополучие.'},
+  },
+  square: { // Квадрат — напряжение
+    sun:   {saturn:'Препятствия и ответственность. Нужно работать.',mars:'Конфликт воль, гнев.',uranus:'Внезапное напряжение.'},
+    moon:  {saturn:'Эмоциональная холодность, напряжение.',mars:'Раздражительность, конфликты.'},
+    saturn:{sun:'Тяжёлый период, требует усилий.',moon:'Ограничения в эмоциях.'},
+    mars:  {saturn:'Блокировка энергии, нужно терпение.',sun:'Конфликты и напряжение.'},
+  },
+  oppos: { // Оппозиция
+    sun:   {saturn:'Противостояние с авторитетом или собой.',jupiter:'Избыток и потеря меры.',mars:'Открытый конфликт.'},
+    saturn:{sun:'Противостояние с ограничениями жизни.',moon:'Разрыв между чувством и долгом.'},
+  },
+};
+
+const TRANSIT_ASPECT_NAMES = {conj:'☌ Соединение', trine:'△ Трин', square:'□ Квадрат', oppos:'☍ Оппозиция', sext:'✶ Секстиль'};
+const TRANSIT_ASPECT_COL   = {conj:'#ffcc00', trine:'#4488ff', square:'#cc4422', oppos:'#cc2266', sext:'#44cc44'};
+
+function natalCalcTransits() {
+  const el = document.getElementById('transit-date');
+  const result = document.getElementById('transit-result');
+  if (!natalData) { result.innerHTML='<span style="color:var(--cursec)">⚠ Сначала рассчитай натальную карту.</span>'; return; }
+  if (!el || !el.value) { result.innerHTML='<span style="color:var(--cursec)">⚠ Введи дату.</span>'; return; }
+
+  const [y,m,d] = el.value.split('-').map(Number);
+  const jdT = natalJD(y, m, d, 12, 0);
+  const TT  = (jdT - 2451545.0) / 36525;
+
+  const transit = {
+    sun:     natalSun(TT),
+    moon:    natalMoon(TT),
+    mercury: natalPlanet('mercury', TT),
+    venus:   natalPlanet('venus',   TT),
+    mars:    natalPlanet('mars',    TT),
+    jupiter: natalPlanet('jupiter', TT),
+    saturn:  natalPlanet('saturn',  TT),
+    uranus:  natalPlanet('uranus',  TT),
+    neptune: natalPlanet('neptune', TT),
+    pluto:   natalPlanet('pluto',   TT),
+  };
+
+  const natal = natalData.positions;
+  const found = [];
+
+  const ASP = [
+    {key:'conj', angle:0,   orb:6},
+    {key:'sext', angle:60,  orb:4},
+    {key:'square',angle:90, orb:6},
+    {key:'trine', angle:120,orb:6},
+    {key:'oppos', angle:180,orb:6},
+  ];
+
+  const natalKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn'];
+  const transitKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+
+  for (const tp of transitKeys) {
+    for (const np of natalKeys) {
+      if (natal[np] === null) continue;
+      const diff = Math.abs(norm360(transit[tp] - natal[np]));
+      const angle = diff > 180 ? 360 - diff : diff;
+      for (const asp of ASP) {
+        const orb = Math.abs(angle - asp.angle);
+        if (orb <= asp.orb) {
+          const interpCat = TRANSIT_INTERP[asp.key];
+          const interp = interpCat && interpCat[tp] && interpCat[tp][np]
+            ? interpCat[tp][np]
+            : interpCat && interpCat[np] && interpCat[np][tp]
+              ? interpCat[np][tp]
+              : null;
+          found.push({ tp, np, asp: asp.key, orb: orb.toFixed(1), interp });
+          break;
+        }
+      }
+    }
+  }
+
+  if (!found.length) {
+    result.innerHTML = '<div style="color:var(--textd);font-size:10px">На эту дату значимых транзитов нет. Спокойный период.</div>';
+    return;
+  }
+
+  // Сортировка: сначала медленные планеты (Плутон → Солнце)
+  const weight = {pluto:10,neptune:9,uranus:8,saturn:7,jupiter:6,mars:5,sun:4,venus:3,mercury:2,moon:1};
+  found.sort((a,b) => (weight[b.tp]||0) - (weight[a.tp]||0));
+
+  result.innerHTML = found.map(f => {
+    const tSign = natalSign(transit[f.tp]);
+    return `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="color:${NATAL_PLANET_COL[f.tp]};font-size:13px">${NATAL_PLANET_SYM[f.tp]}</span>
+        <span style="color:${NATAL_PLANET_COL[f.tp]};font-size:11px;font-weight:bold">${NATAL_PLANET_NAMES[f.tp]}</span>
+        <span style="color:${TRANSIT_ASPECT_COL[f.asp]};font-size:11px">${TRANSIT_ASPECT_NAMES[f.asp]}</span>
+        <span style="color:${NATAL_PLANET_COL[f.np]};font-size:11px">нат. ${NATAL_PLANET_NAMES[f.np]}</span>
+        <span style="color:var(--textd);font-size:9px;margin-left:auto">${f.orb}° орб · ${tSign.sym}${tSign.name}</span>
+      </div>
+      ${f.interp ? `<div style="font-size:11px;color:var(--text);padding-left:4px">${f.interp}</div>` : ''}
     </div>`;
   }).join('');
 }
