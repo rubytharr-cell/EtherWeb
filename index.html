@@ -76,6 +76,7 @@
     <button class="nav-tab" onclick="showPage('mypage')">📋 Мои Трансляции</button>
     <button class="nav-tab" onclick="showPage('profile')">🝊 Астральное тело</button>
     <button class="nav-tab" onclick="showPage('minigames')">🎲 Мини-игры</button>
+    <button class="nav-tab" onclick="showPage('canvas')">⬛ Астральный план</button>
     <!-- <button class="nav-tab" onclick="showPage('world')">🌐 Мир</button> -->
     <div class="nav-right">
       <span class="online-dot"></span><span id="nav-uname" style="color:var(--accent2)"></span>
@@ -515,28 +516,10 @@
 
   <!-- ===== MINIGAMES ===== -->
   <div id="page-minigames" class="page">
-    <div class="layout2">
-      <div>
-        <div class="win">
-          <div class="win-title"><span class="win-title-txt">🎲 Мини-игры</span></div>
-          <div style="padding:12px" id="minigames-content">
-            <div class="empty-state">Загрузка...</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="win">
-          <div class="win-title"><span class="win-title-txt">⊷ Справка</span></div>
-          <div style="padding:8px;font-size:9px;color:var(--textd);line-height:1.8">
-            <b style="color:var(--accent)">Самоцветы</b><br>
-            d2 · d4 · d6 · d8 · d10 · d12 · d20 · d100<br>
-            Бросайте сколько угодно раз.<br><br>
-            <b style="color:var(--accent)">Кости судьбы</b><br>
-            Два d12: планета + астральный дом.<br><br>
-            <b style="color:var(--accent)">Сфера судьбы</b><br>
-            10d5: спектр от «Точно нет» до «Точно да».
-          </div>
-        </div>
+    <div class="win">
+      <div class="win-title"><span class="win-title-txt">🎲 Мини-игры</span></div>
+      <div style="padding:12px" id="minigames-content">
+        <div class="empty-state">Загрузка...</div>
       </div>
     </div>
   </div>
@@ -564,6 +547,46 @@
       </div>
     </div>
   </div> -->
+
+  <!-- ===== АСТРАЛЬНЫЙ ПЛАН (PIXEL BATTLE 50×50) ===== -->
+  <div id="page-canvas" class="page">
+    <div class="layout2">
+      <!-- Холст -->
+      <div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">⬛ Астральный план</span></div>
+          <div style="padding:8px;overflow-x:auto;display:flex;justify-content:center">
+            <canvas id="pixel-canvas" width="500" height="500"
+              style="display:block;cursor:crosshair;image-rendering:pixelated;image-rendering:crisp-edges;
+                     max-width:100%;border:1px solid var(--borderg)"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Сайдбар -->
+      <div>
+        <div class="win" style="margin-bottom:8px">
+          <div class="win-title"><span class="win-title-txt">🎨 Палитра</span></div>
+          <div style="padding:8px">
+            <div id="pixel-palette" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px"></div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:10px;color:var(--textd)">
+              Выбран:
+              <span id="px-sel" style="display:inline-block;width:18px;height:18px;border:1px solid var(--borderg);vertical-align:middle;border-radius:2px"></span>
+            </div>
+            <div id="px-cooldown" style="margin-top:8px;font-size:10px"></div>
+          </div>
+        </div>
+        <div class="win">
+          <div class="win-title"><span class="win-title-txt">⊷ Правила</span></div>
+          <div style="padding:8px;font-size:9px;color:var(--textd);line-height:2">
+            <b style="color:var(--accent)">1 пиксель каждые 3 минуты</b><br>
+            Холст общий — 50×50 = 2500 точек.<br>
+            Сотрудничай или воюй<br>за территорию.<br><br>
+            Астральный план существует<br>вне времени и памяти.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /app -->
 
