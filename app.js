@@ -18,7 +18,8 @@ let DB = {
   forums: [],
   forumPosts: {},
   messages: {},
-  groupChats: []
+  groupChats: [],
+  pixels: {}
 };
 let ME = null;
 let curForumId = null;
@@ -80,6 +81,22 @@ const SEL_COLORS = [
   { name:'Золото', bg:'#1a1000', fg:'#ffaa00' },
 ];
 
+
+// Инверсия: читает --accent текущей темы, возвращает {bg, fg} противоположного цвета
+function getAccentInvert() {
+  const body = document.body;
+  let acc = getComputedStyle(body).getPropertyValue('--accent').trim()
+         || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  acc = acc.replace('#','').trim();
+  if (acc.length === 3) acc = acc.split('').map(c=>c+c).join('');
+  const r = 255 - parseInt(acc.slice(0,2),16);
+  const g = 255 - parseInt(acc.slice(2,4),16);
+  const b = 255 - parseInt(acc.slice(4,6),16);
+  const inv = '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  const bg  = '#' + [r,g,b].map(v=>Math.round(v*0.18).toString(16).padStart(2,'0')).join('');
+  return { bg, fg: inv, inv };
+}
+
 // ===== PROPHECY =====
 const WORDS = [
   'тень','свет','вода','огонь','камень','ветер','дым','пыль','соль','пепел',
@@ -134,6 +151,7 @@ function load() {
         renderDialogs();
         if (curForumId) renderForumPosts(curForumId);
         if (curChatPartner) renderMessages();
+        updatePixelCanvasFromDB();
         // if (document.getElementById('page-world') && document.getElementById('page-world').classList.contains('active')) drawWorld();
       }
     }
@@ -256,7 +274,7 @@ async function doRegister() {
   const hashedPass = await hashPassword(pass);
   const u = {
     name, pass: hashedPass, avatar:regAv, karma:0, sparkColor:'#ff6600', selBg:'#3a0000', selFg:'#ff4400',
-    subs:[], forums:[], postCount:0, commentCount:0, joined:Date.now(),
+    selInvert:false, subs:[], forums:[], postCount:0, commentCount:0, joined:Date.now(),
     surname:'', status:'', level:'неофит'
   };
   DB.users.push(u); save(); ME=u; saveMe(); startApp();
@@ -283,8 +301,9 @@ function startApp() {
 
   document.getElementById('prophecy-bar').textContent = makeProphecy();
   setSparkColor(ME.sparkColor||'#ff6600');
-  setSelColor(ME.selBg||'#3a0000', ME.selFg||'#ff4400');
   if(ME.theme) document.body.className = ME.theme;
+  if(ME.selInvert) { const inv=getAccentInvert(); setSelColor(inv.bg,inv.fg); }
+  else setSelColor(ME.selBg||'#3a0000', ME.selFg||'#ff4400');
   
   renderFeed(); renderSidebar(); renderForums(); renderMyForumsList();
   renderColorPickers(); renderProfilePage(); renderDialogs();
@@ -297,13 +316,14 @@ function showPage(p) {
   document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   const tabs = document.querySelectorAll('.nav-tab');
-  const map = {ether:0, subs:1, broadcasts:2, chats:3, mypage:4, profile:5, minigames:6, /*world:7*/};
+  const map = {ether:0, subs:1, broadcasts:2, chats:3, mypage:4, profile:5, minigames:6, canvas:7};
   if(map[p]!==undefined) tabs[map[p]].classList.add('active');
   if(p==='chats') { renderDialogs(); renderGroupChats(); renderAllGroups(); }
   if(p==='profile') renderProfilePage();
   if(p==='broadcasts') renderForums();
   if(p==='mypage') renderMyPage(ME);
   if(p==='minigames') renderMinigames();
+  if(p==='canvas') renderPixelPage();
   if(p==='subs') renderSubsFeed();
   // if(p==='world') renderWorld();
   // else stopWorldAnim();
@@ -1036,11 +1056,19 @@ function renderColorPickers() {
   </div>`).join('');
 
   const sel=document.getElementById('sel-color-picker');
+  const inv = getAccentInvert();
+  const isInv = ME.selBg === inv.bg;
   sel.innerHTML=SEL_COLORS.map(c=>`<div class="color-opt${ME.selBg===c.bg?' selected':''}"
     style="background:${c.bg};border-color:${ME.selBg===c.bg?'#fff':c.fg}"
     title="${c.name}" onclick="pickSelColor('${c.bg}','${c.fg}',this)">
     <div style="font-size:9px;color:${c.fg};padding:2px;text-shadow:0 0 4px ${c.fg}">Аб</div>
-  </div>`).join('');
+  </div>`).join('')
+  + `<div class="color-opt${isInv?' selected':''}"
+    style="background:linear-gradient(135deg,${inv.bg} 50%,${inv.inv}33 100%);border-color:${isInv?'#fff':inv.fg}"
+    title="Инверсия темы" onclick="pickSelInvert(this)">
+    <div style="font-size:8px;color:${inv.fg};padding:2px;text-shadow:0 0 4px ${inv.fg}">⇄</div>
+  </div>`;
+
 }
 
 function pickSparkColor(val, el) {
@@ -1050,7 +1078,13 @@ function pickSparkColor(val, el) {
 }
 function pickSelColor(bg,fg,el) {
   document.querySelectorAll('#sel-color-picker .color-opt').forEach(e=>e.classList.remove('selected'));
-  el.classList.add('selected'); ME.selBg=bg; ME.selFg=fg; setSelColor(bg,fg);
+  el.classList.add('selected'); ME.selBg=bg; ME.selFg=fg; ME.selInvert=false; setSelColor(bg,fg);
+  playAstralSound();
+}
+function pickSelInvert(el) {
+  const inv = getAccentInvert();
+  document.querySelectorAll('#sel-color-picker .color-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected'); ME.selInvert=true; ME.selBg=inv.bg; ME.selFg=inv.fg; setSelColor(inv.bg,inv.fg);
   playAstralSound();
 }
 
@@ -1085,7 +1119,17 @@ function saveProfile() {
 
 function setTheme(theme) {
   document.body.className = theme;
-  if(ME) { ME.theme=theme; saveMe(); updateUser(ME); save(); }
+  if(ME) {
+    ME.theme=theme; saveMe(); updateUser(ME); save();
+    // Если выбрана инверсия — пересчитываем под новую тему
+    if(ME.selInvert) {
+      const inv = getAccentInvert();
+      ME.selBg=inv.bg; ME.selFg=inv.fg; setSelColor(inv.bg,inv.fg);
+      // Обновляем свотч инверсии в пикере если он открыт
+      const picker = document.getElementById('sel-color-picker');
+      if(picker) renderColorPickers();
+    }
+  }
   playAstralSound();
 }
 
@@ -1904,7 +1948,7 @@ let activeMiniGame = null;
 function renderMinigames() {
   if (activeMiniGame) { _renderActiveMiniGame(); return; }
   document.getElementById('minigames-content').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:680px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="mg-card" onclick="openMiniGame('natal')">
         <div class="mg-card-icon">☿</div>
         <div class="mg-card-info">
@@ -1995,6 +2039,16 @@ function renderMinigames() {
         </div>
         <div class="mg-card-arr">▶</div>
       </div>
+      <!-- Магический квадрат временно скрыт
+      <div class="mg-card" onclick="openMiniGame('magsquare')">
+        <div class="mg-card-icon">🔢</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Магический квадрат</div>
+          <div class="mg-card-desc">Генератор талисмана · квадрат + сигил по числу</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
+      -->
     </div>`;
 }
 
@@ -2014,7 +2068,8 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'norse')    body = renderNorseRunesSection();
   if (activeMiniGame === 'armanist') body = renderArmanistSection();
   if (activeMiniGame === 'playing')  body = renderPlayingCardsSection();
-  if (activeMiniGame === 'lenormand')body = renderLenormandSection();
+  if (activeMiniGame === 'lenormand')  body = renderLenormandSection();
+  if (activeMiniGame === 'magsquare')  body = renderMagicSquareSection();
   document.getElementById('minigames-content').innerHTML = back + body;
 }
 
@@ -3701,6 +3756,298 @@ function updateUser(u) {
 }
 
 function searchUser(name) { openUserPage(name); }
+
+// ===== МАГИЧЕСКИЙ КВАДРАТ =====
+
+const MAGIC_SQUARE_3 = [[2,7,6],[9,5,1],[4,3,8]];   // Lo Shu / Сатурн, центр=5, сумма=15
+const MAGIC_SQUARE_4 = [[16,3,2,13],[5,10,11,8],[9,6,7,12],[4,15,14,1]]; // Дюрер/Юпитер, сумма=34
+const MAGIC_SQUARE_5 = [[17,24,1,8,15],[23,5,7,14,16],[4,6,13,20,22],[10,12,19,21,3],[11,18,25,2,9]]; // Марс, центр=13
+
+const SQUARE_META = {
+  3: { planet:'Сатурн', sym:'♄', col:'#6a6a88', desc:'Порядок, время, дисциплина. Сила терпения и кармических законов.' },
+  4: { planet:'Юпитер', sym:'♃', col:'#6688aa', desc:'Рост, удача, расширение возможностей. Тalisман изобилия и защиты.' },
+  5: { planet:'Марс',   sym:'♂', col:'#aa4422', desc:'Воля, действие, победа. Талисман силы и преодоления.' },
+};
+
+let msOrder = 3;
+let msLastNum = null;
+
+function renderMagicSquareSection() {
+  return `<div class="profile-section">
+    <div class="profile-section-title">🔢 МАГИЧЕСКИЙ КВАДРАТ — ТАЛИСМАН</div>
+    <div style="color:var(--textd);font-size:10px;margin-bottom:12px;line-height:1.7">
+      Квадрат центрируется под твоё число, а сигил — уникальный символ-путь — соединяет числа от меньшего к большему.
+      Это классическая практика талисманной магии (Агриппа, 1531 г.)
+    </div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${[3,4,5].map(n => {
+        const m = SQUARE_META[n];
+        return `<button class="btn sm${msOrder===n?' primary':''}"
+          style="${msOrder===n?'':'border-color:'+m.col+';color:'+m.col}"
+          onclick="setMsOrder(${n})">${m.sym} ${n}×${n} ${m.planet}</button>`;
+      }).join('')}
+    </div>
+
+    <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;max-width:400px">
+      <div class="field" style="flex:1;margin:0;min-width:120px">
+        <label>ТВОЁ ЧИСЛО (1–999)</label>
+        <input type="number" id="ms-num" min="1" max="999" placeholder="7, 33, 108...">
+      </div>
+      <button class="btn sm" onclick="msFromName()" title="Рассчитать из имени пользователя">Из имени</button>
+      <button class="btn sm" onclick="msFromDate()" title="Рассчитать из сегодняшней даты">Из даты</button>
+    </div>
+
+    <button class="btn primary" onclick="generateMagicSquare()">⟡ Сгенерировать талисман</button>
+    <div id="ms-result" style="margin-top:20px"></div>
+  </div>`;
+}
+
+function setMsOrder(n) { msOrder = n; _renderActiveMiniGame(); }
+
+function msReduceNum(n) {
+  // Нумерологическая редукция до 1–9 (или мастер-числа 11, 22, 33)
+  while (n > 33 || (n > 9 && n !== 11 && n !== 22 && n !== 33)) {
+    n = String(n).split('').reduce((a,b) => a + parseInt(b), 0);
+  }
+  return n;
+}
+
+function msFromName() {
+  const name = (ME ? ME.name : '').toLowerCase();
+  let sum = 0;
+  for (const ch of name) {
+    const c = ch.charCodeAt(0);
+    if (c >= 97 && c <= 122)   sum += c - 96;          // a–z
+    if (c >= 1072 && c <= 1103) sum += c - 1071;       // а–я
+  }
+  const el = document.getElementById('ms-num');
+  if (el) el.value = msReduceNum(sum);
+}
+
+function msFromDate() {
+  const d = new Date();
+  const str = `${d.getDate()}${d.getMonth()+1}${d.getFullYear()}`;
+  let sum = str.split('').reduce((a,b) => a + parseInt(b), 0);
+  const el = document.getElementById('ms-num');
+  if (el) el.value = msReduceNum(sum);
+}
+
+function generateMagicSquare() {
+  const el = document.getElementById('ms-num');
+  const res = document.getElementById('ms-result');
+  if (!el || !el.value) { toast('Введи число.'); return; }
+  const n = parseInt(el.value);
+  if (isNaN(n) || n < 1 || n > 999) { toast('Число от 1 до 999.'); return; }
+  msLastNum = n;
+
+  const base = msOrder===3 ? MAGIC_SQUARE_3 : msOrder===4 ? MAGIC_SQUARE_4 : MAGIC_SQUARE_5;
+  const meta = SQUARE_META[msOrder];
+
+  // Для нечётных: сдвигаем квадрат так чтобы центр = n
+  let square;
+  if (msOrder % 2 === 1) {
+    const cx = Math.floor(msOrder/2);
+    const centerVal = base[cx][cx];
+    const offset = n - centerVal;
+    square = base.map(row => row.map(v => v + offset));
+  } else {
+    // Чётный (4×4): сдвигаем чтобы магическая сумма = n (если n кратно 4, иначе ближайшее)
+    const curConst = base[0].reduce((a,b)=>a+b,0); // 34 для 4×4
+    const offset = Math.round((n - curConst) / msOrder);
+    square = base.map(row => row.map(v => v + offset));
+  }
+
+  const magicConst = square[0].reduce((a,b) => a+b, 0);
+  const svgHTML = drawMagicSquareSVG(square, msOrder, meta);
+
+  res.innerHTML = `
+    <div style="font-size:11px;color:${meta.col};font-weight:bold;margin-bottom:4px;letter-spacing:1px">
+      ${meta.sym} Квадрат ${meta.planet}а (${msOrder}×${msOrder}) · Число: ${n} · Сумма строк: ${magicConst}
+    </div>
+    <div style="font-size:10px;color:var(--textd);margin-bottom:14px">${meta.desc}</div>
+    ${svgHTML}
+    <div style="margin-top:10px;font-size:9px;color:var(--textd);line-height:1.7">
+      ◌ — начало пути · — конец пути<br>
+      Сигил уникален для числа <b style="color:var(--accent)">${n}</b> на квадрате ${meta.planet}а.
+    </div>
+    <button class="btn sm" style="margin-top:10px" onclick="downloadMsSVG()">⬇ Скачать SVG</button>`;
+}
+
+function drawMagicSquareSVG(square, order, meta) {
+  const pad = 24, cell = 56, total = pad*2 + cell*order;
+  let s = `<svg id="ms-svg" xmlns="http://www.w3.org/2000/svg" width="${total}" height="${total}"
+    style="display:block;margin:0 auto;background:#06040a;border:1px solid ${meta.col}44;border-radius:2px">`;
+
+  // Сетка
+  for (let i = 0; i <= order; i++) {
+    const x = pad + i*cell, y = pad + i*cell;
+    s += `<line x1="${x}" y1="${pad}" x2="${x}" y2="${pad+order*cell}" stroke="${meta.col}44" stroke-width="1"/>`;
+    s += `<line x1="${pad}" y1="${y}" x2="${pad+order*cell}" y2="${y}" stroke="${meta.col}44" stroke-width="1"/>`;
+  }
+
+  // Позиции каждого числа (для сигила)
+  const pos = {};
+  for (let r = 0; r < order; r++)
+    for (let c = 0; c < order; c++)
+      pos[square[r][c]] = { x: pad + c*cell + cell/2, y: pad + r*cell + cell/2 };
+
+  const nums = Object.keys(pos).map(Number).sort((a,b)=>a-b);
+
+  // Сигил
+  let d = `M${pos[nums[0]].x},${pos[nums[0]].y}`;
+  for (let i=1;i<nums.length;i++) d += ` L${pos[nums[i]].x},${pos[nums[i]].y}`;
+  s += `<path d="${d}" stroke="${meta.col}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+
+  // Начало: кружок
+  s += `<circle cx="${pos[nums[0]].x}" cy="${pos[nums[0]].y}" r="6" fill="none" stroke="${meta.col}" stroke-width="1.5"/>`;
+  // Конец: поперечина
+  const ep = pos[nums[nums.length-1]];
+  s += `<line x1="${ep.x-7}" y1="${ep.y}" x2="${ep.x+7}" y2="${ep.y}" stroke="${meta.col}" stroke-width="2"/>`;
+
+  // Числа
+  const fs = order===5?11:order===4?13:15;
+  for (let r=0;r<order;r++)
+    for (let c=0;c<order;c++) {
+      const v = square[r][c], x = pad+c*cell+cell/2, y = pad+r*cell+cell/2;
+      s += `<text x="${x}" y="${y+1}" text-anchor="middle" dominant-baseline="middle"
+        fill="#b89050" font-size="${fs}" font-family="Tahoma,serif">${v}</text>`;
+    }
+
+  s += `</svg>`;
+  return s;
+}
+
+function downloadMsSVG() {
+  const svg = document.getElementById('ms-svg');
+  if (!svg) return;
+  const blob = new Blob([svg.outerHTML], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`talisman-${msLastNum||'sq'}.svg`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ===== PIXEL BATTLE =====
+
+const PX_COLS = 50, PX_ROWS = 50, PX_CELL = 10;
+const PX_COOLDOWN = 180000; // 3 мин
+
+const PIXEL_PALETTE = [
+  '#000000','#111111','#333333','#666666','#999999','#cccccc','#eeeeee','#ffffff',
+  '#3a0000','#880000','#cc2200','#ff4422','#ff6600','#ff9900','#ffcc00','#ffee44',
+  '#002800','#005500','#00882a','#00bb55','#44cc88','#88ffcc','#003a28','#006644',
+  '#000e28','#001e55','#0044aa','#0077ee','#44aaff','#88ccff','#aaddff','#ddeeff',
+  '#1a0030','#440077','#7700cc','#aa33ee','#cc88ff','#eeccff','#300030','#660066',
+  '#3a1400','#6a3000','#aa6600','#cc9933','#eebb66','#3a3000','#6a5500','#bbaa44',
+];
+
+let pxSelectedColor = '#ff6600';
+let pxCanvas = null, pxCtx = null;
+let pxCooldownTimer = null;
+
+function renderPixelPage() {
+  // Palette
+  const palette = document.getElementById('pixel-palette');
+  if (palette) {
+    palette.innerHTML = PIXEL_PALETTE.map(c =>
+      `<div onclick="pxSelectColor('${c}')" title="${c}"
+        style="aspect-ratio:1;background:${c};cursor:pointer;
+        border:2px solid ${pxSelectedColor===c?'#fff':'transparent'};
+        box-sizing:border-box;border-radius:2px"></div>`
+    ).join('');
+  }
+  const sel = document.getElementById('px-sel');
+  if (sel) { sel.style.background = pxSelectedColor; }
+
+  // Canvas
+  if (!pxCanvas) {
+    pxCanvas = document.getElementById('pixel-canvas');
+    pxCtx = pxCanvas.getContext('2d');
+    pxCanvas.addEventListener('click', pxOnClick);
+    pxCanvas.addEventListener('touchend', pxOnTouch, {passive:false});
+  }
+  pxDrawAll();
+  pxUpdateCooldown();
+}
+
+function pxSelectColor(c) {
+  pxSelectedColor = c;
+  // Обновить рамки в палитре
+  document.querySelectorAll('#pixel-palette > div').forEach(el => {
+    el.style.borderColor = el.title === c ? '#fff' : 'transparent';
+  });
+  const sel = document.getElementById('px-sel'); if(sel) sel.style.background = c;
+}
+
+function pxDrawAll() {
+  if (!pxCtx) return;
+  pxCtx.fillStyle = '#000'; pxCtx.fillRect(0,0,PX_COLS*PX_CELL,PX_ROWS*PX_CELL);
+  for (const [idx, col] of Object.entries(DB.pixels||{})) {
+    pxDrawOne(parseInt(idx), col);
+  }
+}
+
+function pxDrawOne(idx, col) {
+  if (!pxCtx) return;
+  const x = (idx % PX_COLS)*PX_CELL, y = Math.floor(idx/PX_COLS)*PX_CELL;
+  pxCtx.fillStyle = col; pxCtx.fillRect(x, y, PX_CELL, PX_CELL);
+}
+
+function pxGetIndex(clientX, clientY) {
+  const rect = pxCanvas.getBoundingClientRect();
+  const sx = pxCanvas.width / rect.width, sy = pxCanvas.height / rect.height;
+  const px = Math.floor((clientX - rect.left)*sx / PX_CELL);
+  const py = Math.floor((clientY - rect.top)*sy / PX_CELL);
+  if (px<0||px>=PX_COLS||py<0||py>=PX_ROWS) return -1;
+  return py*PX_COLS + px;
+}
+
+function pxOnClick(e) { const i = pxGetIndex(e.clientX,e.clientY); if(i>=0) pxPlace(i,pxSelectedColor); }
+function pxOnTouch(e) {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const i = pxGetIndex(t.clientX,t.clientY); if(i>=0) pxPlace(i,pxSelectedColor);
+}
+
+function pxPlace(idx, col) {
+  if (!ME) return;
+  const now = Date.now();
+  if ((now - (ME.lastPixel||0)) < PX_COOLDOWN) { pxUpdateCooldown(); return; }
+  DB.pixels = DB.pixels||{};
+  DB.pixels[idx] = col;
+  ME.lastPixel = now;
+  updateUser(ME);
+  pxDrawOne(idx, col);
+  // Точечная запись в Firebase
+  if (dbLoaded) {
+    fdb.collection('network').doc('main').update({ [`pixels.${idx}`]: col, users: DB.users })
+      .catch(() => save());
+  }
+  pxUpdateCooldown();
+}
+
+function pxUpdateCooldown() {
+  const el = document.getElementById('px-cooldown'); if(!el) return;
+  clearTimeout(pxCooldownTimer);
+  if (!ME) { el.textContent=''; return; }
+  const rem = PX_COOLDOWN - (Date.now() - (ME.lastPixel||0));
+  if (rem <= 0) {
+    el.innerHTML = `<span style="color:var(--resonc)">✓ Можно ставить пиксель</span>`;
+  } else {
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+    el.innerHTML = `<span style="color:var(--textd)">⏳ ${m}:${String(s).padStart(2,'0')} до следующего</span>`;
+    pxCooldownTimer = setTimeout(pxUpdateCooldown, 1000);
+  }
+}
+
+function updatePixelCanvasFromDB() {
+  const page = document.getElementById('page-canvas');
+  if (!page||!page.classList.contains('active')) return;
+  pxDrawAll();
+  pxUpdateCooldown();
+}
+
 
 // ===== INIT =====
 load();
