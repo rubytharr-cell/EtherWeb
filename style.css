@@ -199,7 +199,7 @@ select option { background:var(--win); color:var(--text); }
 /* ===== LAYOUT ===== */
 #app { display:none; }
 #auth-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-.page { display:none; max-width:960px; margin:0 auto; padding:8px; }
+.page { display:none; max-width:1200px; margin:0 auto; padding:8px; }
 .page.active { display:block; }
 .layout2 { display:grid; grid-template-columns:1fr 196px; gap:8px; }
 @media(max-width:640px){ .layout2 { grid-template-columns:1fr; } }
