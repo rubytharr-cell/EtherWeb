@@ -2039,6 +2039,14 @@ function renderMinigames() {
         </div>
         <div class="mg-card-arr">▶</div>
       </div>
+      <div class="mg-card" onclick="openMiniGame('elemancer')">
+        <div class="mg-card-icon">⚗</div>
+        <div class="mg-card-info">
+          <div class="mg-card-name">Элементалист</div>
+          <div class="mg-card-desc">Поглощай стихии · WASD + ЛКМ · выживание</div>
+        </div>
+        <div class="mg-card-arr">▶</div>
+      </div>
       <!-- Магический квадрат временно скрыт
       <div class="mg-card" onclick="openMiniGame('magsquare')">
         <div class="mg-card-icon">🔢</div>
@@ -2053,7 +2061,7 @@ function renderMinigames() {
 }
 
 function openMiniGame(name) { activeMiniGame = name; _renderActiveMiniGame(); }
-function closeMiniGame() { activeMiniGame = null; renderMinigames(); }
+function closeMiniGame() { elStop(); activeMiniGame = null; renderMinigames(); }
 
 function _renderActiveMiniGame() {
   const back = `<button class="btn sm" onclick="closeMiniGame()" style="margin-bottom:10px">← Назад</button>`;
@@ -2070,8 +2078,441 @@ function _renderActiveMiniGame() {
   if (activeMiniGame === 'playing')  body = renderPlayingCardsSection();
   if (activeMiniGame === 'lenormand')  body = renderLenormandSection();
   if (activeMiniGame === 'magsquare')  body = renderMagicSquareSection();
+  if (activeMiniGame === 'elemancer')  body = renderElemancerSection();
   document.getElementById('minigames-content').innerHTML = back + body;
+  if (activeMiniGame === 'elemancer') { elInit(); elRenderLeaderboard(); }
 }
+
+
+// ===== ЭЛЕМЕНТАЛИСТ =====
+const EL_ELEMS = [
+  { id:'fire',      sym:'🔥', col:'#ff4422', dark:'#5a1000', name:'Огонь'  },
+  { id:'water',     sym:'💧', col:'#2299ff', dark:'#002255', name:'Вода'   },
+  { id:'earth',     sym:'🌿', col:'#44cc22', dark:'#103300', name:'Земля'  },
+  { id:'lightning', sym:'⚡', col:'#ffcc00', dark:'#332b00', name:'Молния' },
+];
+let EL = null;
+
+function renderElemancerSection() {
+  return `<div class="profile-section" style="padding:12px">
+    <div class="profile-section-title">⚗ ЭЛЕМЕНТАЛИСТ</div>
+    <div style="display:flex;justify-content:center">
+      <canvas id="el-canvas" width="760" height="520"
+        style="border:1px solid var(--accent);border-radius:4px;cursor:crosshair;max-width:100%;display:block">
+      </canvas>
+    </div>
+    <div id="el-hud" style="margin-top:8px;display:flex;gap:16px;justify-content:center;align-items:center;font-size:12px;flex-wrap:wrap"></div>
+    <div style="margin-top:14px">
+      <div style="font-size:10px;letter-spacing:1px;opacity:.5;margin-bottom:6px">ТАБЛИЦА РЕКОРДОВ</div>
+      <div id="el-leaderboard"></div>
+    </div>
+  </div>`;
+}
+
+function elInit() {
+  const canvas = document.getElementById('el-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const startElem = Math.floor(Math.random() * EL_ELEMS.length);
+  EL = {
+    canvas, ctx, W, H,
+    player: { x: W/2, y: H/2, elem: startElem, hp: 100, maxHp: 100, r: 14 },
+    monsters: [],
+    bullets: [],
+    pickups: [],
+    keys: {},
+    mouse: { x: W/2, y: H/2 },
+    lastShot: 0,
+    lastSpawn: 0,
+    spawnDelay: 2200,
+    score: 0,
+    running: true,
+    over: false,
+    raf: null,
+    startTime: Date.now(),
+    shotCooldown: 420,
+    pickupSpawnTimer: 0,
+  };
+
+  // Сразу спавним 2 хилки
+  for (let i=0;i<2;i++) elSpawnPickup();
+
+  // Фокус на canvas для WASD
+  canvas.setAttribute('tabindex','0');
+  canvas.focus();
+
+  // Ивенты — используем e.code для надёжного WASD
+  EL._keydown = e => {
+    EL.keys[e.code] = true;
+    if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  };
+  EL._keyup = e => { EL.keys[e.code] = false; };
+  EL._click   = e => {
+    if (EL.over || !EL.running) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top)  * scaleY;
+    elShoot(mx, my);
+  };
+  EL._mousemove = e => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    EL.mouse.x = (e.clientX - rect.left) * scaleX;
+    EL.mouse.y = (e.clientY - rect.top)  * scaleY;
+  };
+
+  window.addEventListener('keydown', EL._keydown);
+  window.addEventListener('keyup',   EL._keyup);
+  canvas.addEventListener('click',   EL._click);
+  canvas.addEventListener('mousemove', EL._mousemove);
+
+  EL.raf = requestAnimationFrame(elLoop);
+}
+
+function elStop() {
+  if (!EL) return;
+  EL.running = false;
+  if (EL.raf) cancelAnimationFrame(EL.raf);
+  window.removeEventListener('keydown', EL._keydown);
+  window.removeEventListener('keyup',   EL._keyup);
+  if (EL.canvas) {
+    EL.canvas.removeEventListener('click', EL._click);
+    EL.canvas.removeEventListener('mousemove', EL._mousemove);
+  }
+  EL = null;
+}
+
+function elLoop(ts) {
+  if (!EL || !EL.running) return;
+  elUpdate(ts);
+  elDraw();
+  EL.raf = requestAnimationFrame(elLoop);
+}
+
+function elUpdate(ts) {
+  const p = EL.player;
+  const speed = 2.8;
+
+  // Движение
+  if (EL.keys['KeyW'] || EL.keys['ArrowUp'])    p.y -= speed;
+  if (EL.keys['KeyS'] || EL.keys['ArrowDown'])  p.y += speed;
+  if (EL.keys['KeyA'] || EL.keys['ArrowLeft'])  p.x -= speed;
+  if (EL.keys['KeyD'] || EL.keys['ArrowRight']) p.x += speed;
+  p.x = Math.max(p.r, Math.min(EL.W - p.r, p.x));
+  p.y = Math.max(p.r, Math.min(EL.H - p.r, p.y));
+
+  // Спавн монстров
+  const elapsed = Date.now() - EL.startTime;
+  EL.spawnDelay = Math.max(700, 2200 - elapsed / 200);
+  if (!EL.lastSpawn || ts - EL.lastSpawn > EL.spawnDelay) {
+    elSpawnMonster();
+    EL.lastSpawn = ts;
+  }
+
+  // Спавн хилок
+  EL.pickupSpawnTimer += 16;
+  if (EL.pickupSpawnTimer > 8000) {
+    elSpawnPickup();
+    EL.pickupSpawnTimer = 0;
+  }
+
+  // Монстры
+  for (let i = EL.monsters.length - 1; i >= 0; i--) {
+    const m = EL.monsters[i];
+    const dx = p.x - m.x, dy = p.y - m.y;
+    const dist = Math.hypot(dx, dy);
+    if (m.elem === p.elem) {
+      // Свои — бродят случайно, не трогают
+      elWander(m);
+    } else {
+      // Чужие — идут к игроку и бьют
+      if (dist > 0) { m.x += (dx/dist) * m.speed; m.y += (dy/dist) * m.speed; }
+      if (dist < p.r + m.r) {
+        p.hp -= 0.4;
+        if (p.hp <= 0) { p.hp = 0; EL.over = true; EL.running = false; }
+      }
+    }
+  }
+
+  // Пули — убивают ЧУЖИХ, при убийстве игрок принимает их цвет
+  for (let i = EL.bullets.length - 1; i >= 0; i--) {
+    const b = EL.bullets[i];
+    b.x += b.vx; b.y += b.vy;
+    if (b.x < 0 || b.x > EL.W || b.y < 0 || b.y > EL.H) {
+      EL.bullets.splice(i, 1); continue;
+    }
+    let hit = false;
+    // Проверка попадания в радужных
+    for (let j = EL.pickups.length - 1; j >= 0; j--) {
+      const pk = EL.pickups[j];
+      if (Math.hypot(b.x - pk.x, b.y - pk.y) < b.r + pk.r) {
+        p.elem = Math.floor(Math.random() * EL_ELEMS.length); // рандомный элемент
+        EL.pickups.splice(j, 1);
+        EL.score++;
+        hit = true;
+        break;
+      }
+    }
+    if (!hit) {
+      for (let j = EL.monsters.length - 1; j >= 0; j--) {
+        const m = EL.monsters[j];
+        if (Math.hypot(b.x - m.x, b.y - m.y) < b.r + m.r) {
+          if (m.elem !== p.elem) {
+            p.elem = m.elem; // поглощаем элемент убитого
+            EL.monsters.splice(j, 1);
+            EL.score++;
+            hit = true;
+            break;
+          }
+          // Пуля проходит сквозь своих
+        }
+      }
+    }
+    if (hit) { EL.bullets.splice(i, 1); }
+  }
+
+  // Радужные — бродят, при касании бьют и меняют элемент, убиваются пулей
+  for (let i = EL.pickups.length - 1; i >= 0; i--) {
+    const pk = EL.pickups[i];
+    elWander(pk);
+    if (Math.hypot(p.x - pk.x, p.y - pk.y) < p.r + pk.r) {
+      p.hp -= 0.5;
+      p.elem = Math.floor(Math.random() * EL_ELEMS.length);
+      if (p.hp <= 0) { p.hp = 0; EL.over = true; EL.running = false; }
+      EL.pickups.splice(i, 1);
+    }
+  }
+
+  // HUD
+  elUpdateHud();
+}
+
+function elShoot(mx, my) {
+  const now = Date.now();
+  if (now - EL.lastShot < EL.shotCooldown) return;
+  EL.lastShot = now;
+  const p = EL.player;
+  const dx = mx - p.x, dy = my - p.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 1) return;
+  const spd = 9;
+  EL.bullets.push({ x: p.x, y: p.y, vx: (dx/dist)*spd, vy: (dy/dist)*spd, r: 5, elem: p.elem });
+}
+
+function elWander(e) {
+  if (e.wanderAngle === undefined) e.wanderAngle = Math.random() * Math.PI * 2;
+  e.wanderAngle += (Math.random() - 0.5) * 0.12;
+  const spd = e.speed || 0.5;
+  e.x += Math.cos(e.wanderAngle) * spd * 0.5;
+  e.y += Math.sin(e.wanderAngle) * spd * 0.5;
+  const r = e.r || 10;
+  if (e.x < r)        { e.x = r;        e.wanderAngle = Math.PI - e.wanderAngle; }
+  if (e.x > EL.W - r) { e.x = EL.W - r; e.wanderAngle = Math.PI - e.wanderAngle; }
+  if (e.y < r)        { e.y = r;        e.wanderAngle = -e.wanderAngle; }
+  if (e.y > EL.H - r) { e.y = EL.H - r; e.wanderAngle = -e.wanderAngle; }
+}
+
+function elSpawnMonster() {
+  const side = Math.floor(Math.random() * 4);
+  let x, y;
+  if (side === 0) { x = Math.random()*EL.W; y = -16; }
+  else if (side === 1) { x = EL.W+16; y = Math.random()*EL.H; }
+  else if (side === 2) { x = Math.random()*EL.W; y = EL.H+16; }
+  else { x = -16; y = Math.random()*EL.H; }
+  const elapsed = Date.now() - EL.startTime;
+  const speed = 0.35 + Math.random()*0.25 + elapsed/200000;
+  EL.monsters.push({ x, y, elem: Math.floor(Math.random()*EL_ELEMS.length), r: 11, speed: Math.min(speed, 1.1) });
+}
+
+function elSpawnPickup() {
+  const side = Math.floor(Math.random() * 4);
+  let x, y;
+  if (side === 0) { x = Math.random()*EL.W; y = -14; }
+  else if (side === 1) { x = EL.W+14; y = Math.random()*EL.H; }
+  else if (side === 2) { x = Math.random()*EL.W; y = EL.H+14; }
+  else { x = -14; y = Math.random()*EL.H; }
+  EL.pickups.push({ x, y, r: 10, phase: Math.random()*Math.PI*2, speed: 0.5 + Math.random()*0.3 });
+}
+
+function elDraw() {
+  const { ctx, W, H, player: p, monsters, bullets, pickups, over } = EL;
+  ctx.clearRect(0, 0, W, H);
+
+  // Фон
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Сетка
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x=0;x<W;x+=40) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+  for (let y=0;y<H;y+=40) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+
+  // Радужные существа — круги
+  const t = Date.now() / 600;
+  for (const pk of pickups) {
+    const hue = ((Date.now()/18 + pk.phase * 60) % 360);
+    ctx.save();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = `hsl(${hue},100%,60%)`;
+    ctx.beginPath(); ctx.arc(pk.x, pk.y, pk.r, 0, Math.PI*2);
+    const gr = ctx.createRadialGradient(pk.x,pk.y,0,pk.x,pk.y,pk.r);
+    gr.addColorStop(0,'white');
+    gr.addColorStop(0.5, `hsl(${hue},100%,70%)`);
+    gr.addColorStop(1, `hsl(${(hue+120)%360},100%,50%)`);
+    ctx.fillStyle = gr;
+    ctx.fill();
+    ctx.strokeStyle = `hsl(${(hue+180)%360},100%,80%)`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Монстры
+  for (const m of monsters) {
+    const el = EL_ELEMS[m.elem];
+    const isSafe = (m.elem === p.elem);
+    ctx.save();
+    ctx.shadowBlur = isSafe ? 6 : 14;
+    ctx.shadowColor = el.col;
+    ctx.fillStyle = isSafe ? el.dark : el.col;
+    ctx.strokeStyle = el.col;
+    ctx.lineWidth = isSafe ? 1 : 2;
+    const s = m.r * 2;
+    ctx.fillRect(m.x - m.r, m.y - m.r, s, s);
+    ctx.strokeRect(m.x - m.r, m.y - m.r, s, s);
+    ctx.restore();
+    ctx.font = '12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(el.sym, m.x, m.y);
+  }
+
+  // Пули
+  for (const b of bullets) {
+    const el = EL_ELEMS[b.elem];
+    ctx.save();
+    ctx.shadowBlur = 16; ctx.shadowColor = el.col;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.fillStyle = el.col;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Игрок
+  const el = EL_ELEMS[p.elem];
+  ctx.save();
+  ctx.shadowBlur = 20; ctx.shadowColor = el.col;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+  const gr = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+  gr.addColorStop(0, '#ffffff');
+  gr.addColorStop(0.4, el.col);
+  gr.addColorStop(1, el.dark);
+  ctx.fillStyle = gr;
+  ctx.fill();
+  ctx.strokeStyle = el.col; ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+  ctx.font = '14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(el.sym, p.x, p.y);
+
+  // Прицел — линия к мышке
+  ctx.save();
+  ctx.strokeStyle = el.col + '44';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(EL.mouse.x, EL.mouse.y);
+  ctx.stroke();
+  ctx.restore();
+
+  // HP бар над игроком
+  const bw = 30, bh = 4;
+  ctx.fillStyle = '#222'; ctx.fillRect(p.x - bw/2, p.y - p.r - 8, bw, bh);
+  ctx.fillStyle = p.hp > 40 ? '#44ff66' : '#ff4422';
+  ctx.fillRect(p.x - bw/2, p.y - p.r - 8, bw*(p.hp/p.maxHp), bh);
+
+  // Game over
+  if (over) {
+    if (!EL._recordSaved) {
+      EL._recordSaved = true;
+      elSaveRecord(EL.score, Math.floor((Date.now() - EL.startTime)/1000));
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = 'bold 30px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = '#ff4422';
+    ctx.shadowBlur = 20; ctx.shadowColor = '#ff4422';
+    ctx.fillText('ПОГЛОЩЁН ТЬМОЙ', W/2, H/2 - 28);
+    ctx.font = '18px sans-serif'; ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
+    ctx.fillText(`Очки: ${EL.score}  ·  Время: ${Math.floor((Date.now()-EL.startTime)/1000)}с`, W/2, H/2 + 12);
+    ctx.font = '13px sans-serif'; ctx.fillStyle = '#aaa';
+    ctx.fillText('[ R — перезапуск ]', W/2, H/2 + 44);
+  }
+}
+
+function elUpdateHud() {
+  const hud = document.getElementById('el-hud');
+  if (!hud || !EL) return;
+  const el = EL_ELEMS[EL.player.elem];
+  const elapsed = Math.floor((Date.now() - EL.startTime)/1000);
+  hud.innerHTML = `
+    <span style="color:${el.col}">${el.sym} ${el.name}</span>
+    <span>❤ ${Math.ceil(EL.player.hp)}</span>
+    <span>★ ${EL.score}</span>
+    <span style="opacity:.5">${elapsed}с</span>`;
+}
+
+function elSaveRecord(score, time) {
+  if (!ME) return;
+  const prev = ME.elBest;
+  if (!prev || score > prev.score || (score === prev.score && time > prev.time)) {
+    ME.elBest = { score, time };
+    saveMe(); updateUser(ME); save();
+    elRenderLeaderboard();
+  }
+}
+
+function elRenderLeaderboard() {
+  const el = document.getElementById('el-leaderboard');
+  if (!el) return;
+  const players = DB.users
+    .filter(u => u.elBest)
+    .sort((a,b) => b.elBest.score - a.elBest.score || b.elBest.time - a.elBest.time)
+    .slice(0, 10);
+  if (!players.length) { el.innerHTML = '<div style="opacity:.4;font-size:11px;text-align:center;padding:8px">Рекордов ещё нет</div>'; return; }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <tr style="opacity:.5;border-bottom:1px solid var(--borderg)">
+      <td style="padding:3px 6px">#</td>
+      <td style="padding:3px 6px">Маг</td>
+      <td style="padding:3px 6px;text-align:right">Очки</td>
+      <td style="padding:3px 6px;text-align:right">Время</td>
+    </tr>
+    ${players.map((u,i)=>`<tr style="${u.name===ME?.name?'color:var(--accent)':''}">
+      <td style="padding:3px 6px;opacity:.5">${i+1}</td>
+      <td style="padding:3px 6px">${escapeHtml(u.name)}</td>
+      <td style="padding:3px 6px;text-align:right">★ ${u.elBest.score}</td>
+      <td style="padding:3px 6px;text-align:right;opacity:.6">${u.elBest.time}с</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+// Перезапуск по R
+window.addEventListener('keydown', function elRestart(e) {
+  if (e.key.toLowerCase() === 'r' && EL && EL.over) {
+    elStop();
+    // пересоздаём
+    setTimeout(() => {
+      if (activeMiniGame === 'elemancer') {
+        document.getElementById('minigames-content').innerHTML =
+          `<button class="btn sm" onclick="closeMiniGame()" style="margin-bottom:10px">← Назад</button>` +
+          renderElemancerSection();
+        elInit();
+      }
+    }, 50);
+  }
+});
 
 function renderDiceSection() {
   return `<div class="profile-section dice-section">
